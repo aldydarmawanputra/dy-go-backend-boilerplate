@@ -40,6 +40,17 @@ func (h *Handler) List(c *fiber.Ctx) error {
 	return response.WithMeta(c, ToResponseList(users), pagination.NewMeta(p, len(users), total))
 }
 
+func (h *Handler) Search(c *fiber.Ctx) error {
+	query := c.Query("q", "")
+	p := pagination.Parse(c.Query("limit"), c.Query("offset"))
+
+	users, total, err := h.svc.SearchFullText(c.Context(), query, p.Limit, p.Offset)
+	if err != nil {
+		return response.Error(c, err)
+	}
+	return response.WithMeta(c, ToResponseList(users), pagination.NewMeta(p, len(users), total))
+}
+
 func (h *Handler) Create(c *fiber.Ctx) error {
 	var req CreateRequest
 	if err := c.BodyParser(&req); err != nil {

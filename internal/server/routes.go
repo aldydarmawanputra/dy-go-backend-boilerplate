@@ -57,6 +57,7 @@ func registerRoutes(app *fiber.App, cfg *config.Config, db *gorm.DB, rdb *redis.
 	users := v1.Group("/users", middleware.Auth(jwtMgr))
 	users.Get("/", userHandler.List)
 	users.Post("/", middleware.RequireRole(rolemod.Admin), userHandler.Create)
+	users.Get("/search", userHandler.Search)
 	users.Get("/me", userHandler.Me)
 	users.Get("/:id", middleware.RequireSelfOrAdmin("id"), userHandler.GetByID)
 	users.Put("/:id", middleware.RequireSelfOrAdmin("id"), userHandler.Replace)

@@ -103,6 +103,7 @@ Config service `app` & `migrate` dibaca dari **`.env.docker`** (via `env_file`),
 | POST   | `/api/v1/auth/logout`   | -    | Revoke refresh token                |
 | GET    | `/api/v1/users`         | ✅   | List/search user (raw query)        |
 | POST   | `/api/v1/users`         | admin | Buat user (+ detail opsional)     |
+| GET    | `/api/v1/users/search`  | ✅   | Full-text search (Postgres tsvector) `?q=` |
 | GET    | `/api/v1/users/me`      | ✅   | Profil user yang login              |
 | GET    | `/api/v1/users/:id`     | ✅   | Ambil satu user + detail            |
 | PUT    | `/api/v1/users/:id`     | ✅   | Replace (name + detail)             |

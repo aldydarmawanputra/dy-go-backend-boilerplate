@@ -12,6 +12,7 @@ type Repository interface {
 	FindByID(ctx context.Context, id string) (*User, error)
 	FindByEmail(ctx context.Context, email string) (*User, error)
 	Search(ctx context.Context, keyword string, limit, offset int) ([]User, int64, error)
+	FullTextSearch(ctx context.Context, query string, limit, offset int) ([]User, int64, error)
 	Save(ctx context.Context, u *User) error
 	Delete(ctx context.Context, id string) error
 }
@@ -79,6 +80,37 @@ func (r *repository) Search(ctx context.Context, keyword string, limit, offset i
 	`
 	var users []User
 	if err := r.db.WithContext(ctx).Raw(q, keyword, limit, offset).Scan(&users).Error; err != nil {
+		return nil, 0, err
+	}
+	return users, total, nil
+}
+
+// FullTextSearch uses the generated tsvector column + GIN index (see migration
+// 20260829000005) and ranks results by relevance.
+func (r *repository) FullTextSearch(ctx context.Context, query string, limit, offset int) ([]User, int64, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	var total int64
+	if err := r.db.WithContext(ctx).
+		Raw(`SELECT count(*) FROM users WHERE search_vector @@ plainto_tsquery('simple', $1)`, query).
+		Scan(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	const q = `
+		SELECT id, email, password_hash, name, created_at, updated_at
+		FROM users
+		WHERE search_vector @@ plainto_tsquery('simple', $1)
+		ORDER BY ts_rank(search_vector, plainto_tsquery('simple', $1)) DESC
+		LIMIT $2 OFFSET $3
+	`
+	var users []User
+	if err := r.db.WithContext(ctx).Raw(q, query, limit, offset).Scan(&users).Error; err != nil {
 		return nil, 0, err
 	}
 	return users, total, nil

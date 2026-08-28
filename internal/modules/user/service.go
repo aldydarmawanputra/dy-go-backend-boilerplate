@@ -13,6 +13,7 @@ type Service interface {
 	Create(ctx context.Context, req CreateRequest) (*User, error)
 	GetByID(ctx context.Context, id string) (*User, error)
 	Search(ctx context.Context, keyword string, limit, offset int) ([]User, int64, error)
+	SearchFullText(ctx context.Context, query string, limit, offset int) ([]User, int64, error)
 	Replace(ctx context.Context, id string, req ReplaceRequest) (*User, error)
 	Patch(ctx context.Context, id string, req PatchRequest) (*User, error)
 	Delete(ctx context.Context, id string) error
@@ -96,6 +97,10 @@ func (s *service) GetByID(ctx context.Context, id string) (*User, error) {
 
 func (s *service) Search(ctx context.Context, keyword string, limit, offset int) ([]User, int64, error) {
 	return s.repo.Search(ctx, keyword, limit, offset)
+}
+
+func (s *service) SearchFullText(ctx context.Context, query string, limit, offset int) ([]User, int64, error) {
+	return s.repo.FullTextSearch(ctx, query, limit, offset)
 }
 
 func (s *service) Replace(ctx context.Context, id string, req ReplaceRequest) (*User, error) {

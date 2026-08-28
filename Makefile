@@ -1,4 +1,4 @@
-.PHONY: help run build tidy test docker-up docker-down migrate-up migrate-down migrate-new
+.PHONY: help setup run build tidy test docker-up docker-down migrate-up migrate-down migrate-new
 
 ifneq (,$(wildcard .env))
 include .env
@@ -11,6 +11,7 @@ DATABASE_URL ?= postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_
 export DATABASE_URL
 
 help:
+	@echo "make setup                  - one-time init: .env, deps, dbmate, create db + migrate"
 	@echo "make run                    - run the API locally"
 	@echo "make build                  - build binary to ./bin"
 	@echo "make tidy                   - go mod tidy"
@@ -20,6 +21,13 @@ help:
 	@echo "make migrate-up             - apply dbmate migrations"
 	@echo "make migrate-down           - roll back the last migration"
 	@echo "make migrate-new name=xxx   - create a new migration file"
+
+setup:
+	@test -f .env || (cp .env.example .env && echo "created .env from .env.example")
+	go mod download
+	@command -v dbmate >/dev/null 2>&1 || (echo "installing dbmate..." && go install github.com/amacneil/dbmate/v2@latest)
+	dbmate up
+	@echo "setup complete — run the API with: make run"
 
 run:
 	go run ./cmd/api

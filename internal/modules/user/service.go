@@ -3,8 +3,6 @@ package user
 import (
 	"context"
 
-	"github.com/google/uuid"
-
 	"go-backend-boilerplate/internal/shared/apperror"
 	"go-backend-boilerplate/internal/shared/hash"
 )
@@ -41,15 +39,12 @@ func (s *service) Create(ctx context.Context, req CreateRequest) (*User, error) 
 	}
 
 	u := &User{
-		ID:           uuid.NewString(),
 		Email:        req.Email,
 		Name:         req.Name,
 		PasswordHash: hashed,
 	}
 	if req.Detail != nil {
 		u.Detail = &UserDetail{
-			ID:        uuid.NewString(),
-			UserID:    u.ID,
 			Phone:     req.Detail.Phone,
 			Address:   req.Detail.Address,
 			City:      req.Detail.City,
@@ -89,7 +84,7 @@ func (s *service) Replace(ctx context.Context, id string, req ReplaceRequest) (*
 	u.Name = req.Name
 	if req.Detail != nil {
 		if u.Detail == nil {
-			u.Detail = &UserDetail{ID: uuid.NewString(), UserID: u.ID}
+			u.Detail = &UserDetail{UserID: u.ID}
 		}
 		u.Detail.Phone = req.Detail.Phone
 		u.Detail.Address = req.Detail.Address
@@ -116,7 +111,7 @@ func (s *service) Patch(ctx context.Context, id string, req PatchRequest) (*User
 	}
 	if req.Detail != nil {
 		if u.Detail == nil {
-			u.Detail = &UserDetail{ID: uuid.NewString(), UserID: u.ID}
+			u.Detail = &UserDetail{UserID: u.ID}
 		}
 		applyDetailPatch(u.Detail, req.Detail)
 	}

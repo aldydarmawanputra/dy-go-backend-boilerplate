@@ -17,6 +17,7 @@ internal/
   server/                # bikin *fiber.App + wiring route (routes.go) + health
   middleware/            # JWT auth, recover, logger, cors, requestid
   shared/                # util lintas-fitur
+    model/               #   Base model (UUID google + timestamps) buat di-embed model
     apperror/            #   error domain -> HTTP status + code
     response/            #   envelope JSON standar {success,data,error,meta}
     validator/           #   wrapper go-playground/validator
@@ -56,17 +57,23 @@ App membangun DSN Postgres dari `DB_*`. dbmate butuh `DATABASE_URL`, yang otomat
   ```
   (Alternatif: pakai service `migrate` di docker-compose, ga perlu install.)
 
+## Setelah clone (init sekali)
+
+Pastikan ada server PostgreSQL jalan (lokal atau `docker compose up -d postgres redis`), lalu:
+
+```bash
+make setup
+```
+
+`make setup` otomatis: bikin `.env` dari `.env.example` (kalau belum ada) → `go mod download` → pasang `dbmate` (kalau belum ada) → **bikin database sesuai `.env` + jalanin semua migrasi** (`dbmate up`). Sesuaikan kredensial DB di `.env` dulu sebelum jalanin.
+
 ## Menjalankan (lokal)
 
 ```bash
-cp .env.example .env
-go mod tidy
-docker compose up -d postgres redis
-make migrate-up
 make run
 ```
 
-Server jalan di `http://localhost:8080`.
+Server jalan di `http://localhost:8080`. Saat start, app juga otomatis **membuat database** (sesuai `DB_*` di `.env`) kalau belum ada — lihat `internal/database/ensure.go`. Skema tabel tetap dikelola dbmate (`make setup` / `make migrate-up`).
 
 ## Menjalankan (full Docker)
 
@@ -127,6 +134,8 @@ curl -s -X DELETE localhost:8080/api/v1/users/<id> -H "Authorization: Bearer $TO
 
 - `users` — id, email, password_hash, name, timestamps.
 - `user_details` — one-to-one ke `users` (FK `ON DELETE CASCADE`): phone, address, city, country, bio, avatar_url.
+
+Semua ID tabel entity pakai **UUID (google/uuid)**, di-generate otomatis lewat GORM hook `BeforeCreate` di `internal/shared/model`. Bikin model baru cukup embed `model.Base` — ID + timestamps langsung ke-handle.
 
 ## Migrasi (dbmate)
 

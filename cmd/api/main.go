@@ -16,6 +16,10 @@ import (
 func main() {
 	cfg := config.Load()
 
+	if err := database.EnsureDatabase(cfg); err != nil {
+		log.Fatalf("failed to ensure database exists: %v", err)
+	}
+
 	db, err := database.Connect(cfg)
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)

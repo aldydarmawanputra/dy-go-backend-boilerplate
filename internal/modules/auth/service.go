@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"html"
-	"log/slog"
 
 	"go-backend-boilerplate/internal/mailer"
 	"go-backend-boilerplate/internal/modules/role"
@@ -13,6 +12,7 @@ import (
 	"go-backend-boilerplate/internal/shared/hash"
 	"go-backend-boilerplate/internal/shared/jwtutil"
 	"go-backend-boilerplate/internal/shared/sanitize"
+	"go-backend-boilerplate/internal/worker"
 )
 
 type Tokens struct {
@@ -34,10 +34,11 @@ type service struct {
 	jwt     *jwtutil.Manager
 	refresh *RefreshStore
 	mailer  mailer.Mailer
+	worker  *worker.Pool
 }
 
-func NewService(users user.Service, repo user.Repository, roles role.Repository, jwt *jwtutil.Manager, refresh *RefreshStore, mail mailer.Mailer) Service {
-	return &service{users: users, repo: repo, roles: roles, jwt: jwt, refresh: refresh, mailer: mail}
+func NewService(users user.Service, repo user.Repository, roles role.Repository, jwt *jwtutil.Manager, refresh *RefreshStore, mail mailer.Mailer, pool *worker.Pool) Service {
+	return &service{users: users, repo: repo, roles: roles, jwt: jwt, refresh: refresh, mailer: mail, worker: pool}
 }
 
 func (s *service) Register(ctx context.Context, req RegisterRequest) (*user.User, error) {
@@ -50,12 +51,11 @@ func (s *service) Register(ctx context.Context, req RegisterRequest) (*user.User
 		return nil, err
 	}
 
-	go func(email, name string) {
+	email, name := u.Email, u.Name
+	s.worker.Submit("welcome-email", func(ctx context.Context) error {
 		body := "<p>Welcome, " + html.EscapeString(name) + "!</p>"
-		if err := s.mailer.Send(context.Background(), email, "Welcome", body); err != nil {
-			slog.Warn("send welcome email", "err", err)
-		}
-	}(u.Email, u.Name)
+		return s.mailer.Send(ctx, email, "Welcome", body)
+	})
 
 	return u, nil
 }

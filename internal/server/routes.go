@@ -22,9 +22,10 @@ import (
 	"go-backend-boilerplate/internal/shared/jwtutil"
 	"go-backend-boilerplate/internal/shared/response"
 	"go-backend-boilerplate/internal/storage"
+	"go-backend-boilerplate/internal/worker"
 )
 
-func registerRoutes(app *fiber.App, cfg *config.Config, db *gorm.DB, rdb *redis.Client, store storage.Storage, hub *realtime.Hub, jwtMgr *jwtutil.Manager) {
+func registerRoutes(app *fiber.App, cfg *config.Config, db *gorm.DB, rdb *redis.Client, store storage.Storage, hub *realtime.Hub, pool *worker.Pool, jwtMgr *jwtutil.Manager) {
 	roleRepo := rolemod.NewRepository(db)
 
 	userRepo := usermod.NewRepository(db)
@@ -33,7 +34,7 @@ func registerRoutes(app *fiber.App, cfg *config.Config, db *gorm.DB, rdb *redis.
 
 	refreshStore := authmod.NewRefreshStore(rdb, cfg.RefreshExpireHours)
 	mail := mailer.New(cfg)
-	authSvc := authmod.NewService(userSvc, userRepo, roleRepo, jwtMgr, refreshStore, mail)
+	authSvc := authmod.NewService(userSvc, userRepo, roleRepo, jwtMgr, refreshStore, mail, pool)
 	authHandler := authmod.NewHandler(authSvc)
 
 	app.Get("/health", healthHandler(db, rdb))

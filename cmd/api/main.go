@@ -15,6 +15,7 @@ import (
 	"go-backend-boilerplate/internal/server"
 	"go-backend-boilerplate/internal/shared/logging"
 	"go-backend-boilerplate/internal/storage"
+	"go-backend-boilerplate/internal/worker"
 )
 
 func main() {
@@ -62,7 +63,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	app := server.New(cfg, db, rdb, store)
+	pool := worker.New(4, 128)
+	pool.Start()
+
+	app := server.New(cfg, db, rdb, store, pool)
 
 	go func() {
 		if err := app.Listen(cfg.Addr()); err != nil {
@@ -80,6 +84,9 @@ func main() {
 	if err := app.ShutdownWithTimeout(10 * time.Second); err != nil {
 		slog.Error("forced shutdown", "err", err)
 	}
+	drainCtx, cancelDrain := context.WithTimeout(context.Background(), 10*time.Second)
+	pool.Shutdown(drainCtx)
+	cancelDrain()
 	if rdb != nil {
 		_ = rdb.Close()
 	}

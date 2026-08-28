@@ -47,7 +47,7 @@ func (s *Supabase) Save(ctx context.Context, key string, r io.Reader, _ int64, c
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(resp.Body)
 		return "", fmt.Errorf("supabase upload failed (%s): %s", resp.Status, strings.TrimSpace(string(body)))
@@ -66,7 +66,7 @@ func (s *Supabase) Delete(ctx context.Context, key string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode >= 300 {
 		return fmt.Errorf("supabase delete failed: %s", resp.Status)
 	}

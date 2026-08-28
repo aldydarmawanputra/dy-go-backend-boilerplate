@@ -16,10 +16,10 @@ type DetailInput struct {
 }
 
 type CreateRequest struct {
-	Email    string       `json:"email" validate:"required,email"`
-	Name     string       `json:"name" validate:"required,min=2,max=100"`
+	Email    string        `json:"email" validate:"required,email"`
+	Name     string        `json:"name" validate:"required,min=2,max=100"`
 	Password redact.Secret `json:"password" validate:"required,min=6,max=72"`
-	Detail   *DetailInput `json:"detail" validate:"omitempty"`
+	Detail   *DetailInput  `json:"detail" validate:"omitempty"`
 }
 
 type ReplaceRequest struct {

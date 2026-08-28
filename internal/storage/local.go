@@ -32,7 +32,7 @@ func (l *Local) Save(_ context.Context, key string, r io.Reader, _ int64, _ stri
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	if _, err := io.Copy(f, r); err != nil {
 		return "", err
 	}

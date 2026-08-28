@@ -30,7 +30,7 @@ func (h *Handler) Upload(c *fiber.Ctx) error {
 	if err != nil {
 		return response.Error(c, apperror.Internal("cannot open uploaded file"))
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	ext := strings.ToLower(path.Ext(fh.Filename))
 	key := "uploads/" + uuid.NewString() + ext

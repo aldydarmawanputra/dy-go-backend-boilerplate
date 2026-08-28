@@ -1,4 +1,4 @@
-.PHONY: help setup run build tidy test docker-up docker-down migrate-up migrate-down migrate-new
+.PHONY: help setup run build tidy test lint docker-up docker-down migrate-up migrate-down migrate-new
 
 ifneq (,$(wildcard .env))
 include .env
@@ -40,6 +40,10 @@ tidy:
 
 test:
 	go test ./...
+
+lint:
+	@command -v golangci-lint >/dev/null 2>&1 || (echo "installing golangci-lint..." && go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest)
+	golangci-lint run ./...
 
 docker-up:
 	docker compose up --build -d

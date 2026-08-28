@@ -39,7 +39,7 @@ func EnsureDatabase(cfg *config.Config) error {
 	if err != nil {
 		return err
 	}
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 	sqlDB.SetConnMaxLifetime(time.Minute)
 
 	var count int64

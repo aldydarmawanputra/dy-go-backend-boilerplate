@@ -198,6 +198,8 @@ Abstraksi `storage.Storage` dengan driver dipilih lewat `STORAGE_DRIVER`:
 
 Upload: `POST /api/v1/files` (multipart, field `file`) → `{ "key": "...", "url": "..." }`. Key di-generate UUID + ekstensi; driver local aman dari path-traversal (`filepath.Clean`).
 
+Kalau file-nya **gambar** (jpeg/png), otomatis dibuatin **thumbnail** (maks 300×300, jaga rasio, high-quality scaling via `x/image`) dan disimpan di `uploads/thumbs/` — response nambah `thumbnail_url`. Lihat `internal/imageproc`.
+
 ## Migrasi (dbmate)
 
 ```bash

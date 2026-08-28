@@ -20,7 +20,7 @@ func TestThumbnailDownscalesAndKeepsAspect(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	out, ct, err := Thumbnail(&in, 100, 100)
+	out, ct, err := Thumbnail(in.Bytes(), 100, 100)
 	if err != nil {
 		t.Fatalf("Thumbnail: %v", err)
 	}

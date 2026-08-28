@@ -2,11 +2,17 @@ package payment
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"go-backend-boilerplate/internal/config"
 )
+
+var ErrInvalidSignature = errors.New("invalid webhook signature")
 
 type Status string
 
@@ -41,13 +47,14 @@ type WebhookEvent struct {
 // Xendit, Stripe, etc. and wire it in New().
 type Gateway interface {
 	Charge(ctx context.Context, req ChargeRequest) (*Charge, error)
-	ParseWebhook(payload []byte) (*WebhookEvent, error)
+	// ParseWebhook verifies the signature over the raw payload, then decodes it.
+	ParseWebhook(payload []byte, signature string) (*WebhookEvent, error)
 }
 
 func New(cfg *config.Config) (Gateway, error) {
 	switch cfg.PaymentProvider {
 	case "stub", "":
-		return stub{}, nil
+		return stub{secret: cfg.PaymentWebhookSecret}, nil
 	default:
 		return nil, fmt.Errorf("payment provider %q not implemented", cfg.PaymentProvider)
 	}
@@ -55,7 +62,9 @@ func New(cfg *config.Config) (Gateway, error) {
 
 // stub is a no-network placeholder: it fabricates a pending charge and parses a
 // simple webhook body. Replace with a real provider implementation.
-type stub struct{}
+type stub struct {
+	secret string
+}
 
 func (stub) Charge(_ context.Context, req ChargeRequest) (*Charge, error) {
 	return &Charge{
@@ -66,7 +75,10 @@ func (stub) Charge(_ context.Context, req ChargeRequest) (*Charge, error) {
 	}, nil
 }
 
-func (stub) ParseWebhook(payload []byte) (*WebhookEvent, error) {
+func (s stub) ParseWebhook(payload []byte, signature string) (*WebhookEvent, error) {
+	if s.secret != "" && !validHMAC(s.secret, payload, signature) {
+		return nil, ErrInvalidSignature
+	}
 	var e struct {
 		OrderID string `json:"order_id"`
 		Status  string `json:"status"`
@@ -75,4 +87,11 @@ func (stub) ParseWebhook(payload []byte) (*WebhookEvent, error) {
 		return nil, err
 	}
 	return &WebhookEvent{OrderID: e.OrderID, Status: Status(e.Status)}, nil
+}
+
+func validHMAC(secret string, payload []byte, signature string) bool {
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write(payload)
+	expected := hex.EncodeToString(mac.Sum(nil))
+	return hmac.Equal([]byte(expected), []byte(signature))
 }

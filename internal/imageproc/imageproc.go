@@ -2,23 +2,38 @@ package imageproc
 
 import (
 	"bytes"
+	"errors"
 	"image"
 	"image/jpeg"
 	_ "image/png"
-	"io"
 	"strings"
 
 	xdraw "golang.org/x/image/draw"
 )
+
+// maxPixels caps decoded image area to guard against decompression bombs
+// (small file, enormous dimensions) that would exhaust CPU/RAM.
+const maxPixels = 24_000_000 // ~24 megapixels
+
+var ErrImageTooLarge = errors.New("image dimensions exceed the allowed limit")
 
 func IsImage(contentType string) bool {
 	return strings.HasPrefix(contentType, "image/jpeg") || strings.HasPrefix(contentType, "image/png")
 }
 
 // Thumbnail decodes an image and scales it to fit within maxW x maxH (preserving
-// aspect ratio, never upscaling), re-encoding as JPEG.
-func Thumbnail(r io.Reader, maxW, maxH int) ([]byte, string, error) {
-	img, _, err := image.Decode(r)
+// aspect ratio, never upscaling), re-encoding as JPEG. It rejects images whose
+// declared dimensions exceed maxPixels before doing the expensive full decode.
+func Thumbnail(data []byte, maxW, maxH int) ([]byte, string, error) {
+	cfg, _, err := image.DecodeConfig(bytes.NewReader(data))
+	if err != nil {
+		return nil, "", err
+	}
+	if int64(cfg.Width)*int64(cfg.Height) > maxPixels {
+		return nil, "", ErrImageTooLarge
+	}
+
+	img, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return nil, "", err
 	}

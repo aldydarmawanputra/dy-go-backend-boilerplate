@@ -54,7 +54,7 @@ func (h *Handler) Upload(c *fiber.Ctx) error {
 	out := fiber.Map{"key": key, "url": url, "size": len(data)}
 
 	if imageproc.IsImage(contentType) {
-		if thumb, thumbCT, terr := imageproc.Thumbnail(bytes.NewReader(data), 300, 300); terr == nil {
+		if thumb, thumbCT, terr := imageproc.Thumbnail(data, 300, 300); terr == nil {
 			thumbKey := "uploads/thumbs/" + id + ".jpg"
 			if thumbURL, serr := h.store.Save(c.Context(), thumbKey, bytes.NewReader(thumb), int64(len(thumb)), thumbCT); serr == nil {
 				out["thumbnail_key"] = thumbKey

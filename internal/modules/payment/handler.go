@@ -35,7 +35,8 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 // Webhook is called by the payment provider. In a real integration, verify the
 // provider signature here before trusting the payload.
 func (h *Handler) Webhook(c *fiber.Ctx) error {
-	if err := h.svc.HandleWebhook(c.Context(), c.Body()); err != nil {
+	signature := c.Get("X-Signature")
+	if err := h.svc.HandleWebhook(c.Context(), c.Body(), signature); err != nil {
 		return response.Error(c, err)
 	}
 	return response.OK(c, fiber.Map{"received": true})

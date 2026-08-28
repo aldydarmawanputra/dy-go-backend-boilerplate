@@ -21,6 +21,11 @@ func main() {
 	cfg := config.Load()
 	logging.Setup(cfg.AppEnv)
 
+	if err := cfg.Validate(); err != nil {
+		slog.Error("config validation", "err", err)
+		os.Exit(1)
+	}
+
 	shutdownOTel, err := observability.Setup(context.Background(), cfg)
 	if err != nil {
 		slog.Error("otel setup", "err", err)

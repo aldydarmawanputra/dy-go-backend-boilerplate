@@ -11,7 +11,7 @@ import (
 
 type Service interface {
 	Create(ctx context.Context, req CreateRequest, currency string) (*Payment, error)
-	HandleWebhook(ctx context.Context, payload []byte) error
+	HandleWebhook(ctx context.Context, payload []byte, signature string) error
 }
 
 type service struct {
@@ -52,10 +52,10 @@ func (s *service) Create(ctx context.Context, req CreateRequest, currency string
 	return p, nil
 }
 
-func (s *service) HandleWebhook(ctx context.Context, payload []byte) error {
-	event, err := s.gateway.ParseWebhook(payload)
+func (s *service) HandleWebhook(ctx context.Context, payload []byte, signature string) error {
+	event, err := s.gateway.ParseWebhook(payload, signature)
 	if err != nil {
-		return apperror.BadRequest("invalid webhook payload")
+		return apperror.Unauthorized("invalid webhook signature or payload")
 	}
 	if event.OrderID == "" {
 		return apperror.BadRequest("missing order id")

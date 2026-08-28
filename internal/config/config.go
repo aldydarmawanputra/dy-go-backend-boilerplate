@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -58,8 +59,9 @@ type Config struct {
 	SMTPPassword string
 	SMTPFrom     string
 
-	PaymentProvider string
-	PaymentCurrency string
+	PaymentProvider      string
+	PaymentCurrency      string
+	PaymentWebhookSecret string
 
 	StorageDriver        string
 	StorageLocalPath     string
@@ -132,8 +134,9 @@ func Load() *Config {
 		SMTPPassword: getEnv("SMTP_PASSWORD", ""),
 		SMTPFrom:     getEnv("SMTP_FROM", "no-reply@example.com"),
 
-		PaymentProvider: getEnv("PAYMENT_PROVIDER", "stub"),
-		PaymentCurrency: getEnv("PAYMENT_CURRENCY", "IDR"),
+		PaymentProvider:      getEnv("PAYMENT_PROVIDER", "stub"),
+		PaymentCurrency:      getEnv("PAYMENT_CURRENCY", "IDR"),
+		PaymentWebhookSecret: getEnv("PAYMENT_WEBHOOK_SECRET", ""),
 
 		StorageDriver:        getEnv("STORAGE_DRIVER", "local"),
 		StorageLocalPath:     getEnv("STORAGE_LOCAL_PATH", "./storage"),
@@ -155,6 +158,26 @@ func Load() *Config {
 }
 
 func (c *Config) IsProduction() bool { return c.AppEnv == "production" }
+
+// Validate fails fast on dangerous misconfiguration (mostly in production).
+func (c *Config) Validate() error {
+	var problems []string
+	if c.JWTSecret == "" {
+		problems = append(problems, "JWT_SECRET is empty")
+	}
+	if c.IsProduction() {
+		if c.JWTSecret == "change-me-in-production" || len(c.JWTSecret) < 16 {
+			problems = append(problems, "JWT_SECRET must be a strong value (>=16 chars) in production")
+		}
+		if c.CORSAllowCredentials && c.CORSAllowOrigins == "*" {
+			problems = append(problems, "CORS_ALLOW_CREDENTIALS=true is not allowed with CORS_ALLOW_ORIGINS=*")
+		}
+	}
+	if len(problems) > 0 {
+		return fmt.Errorf("invalid configuration: %s", strings.Join(problems, "; "))
+	}
+	return nil
+}
 
 func (c *Config) Addr() string { return c.AppHost + ":" + c.AppPort }
 

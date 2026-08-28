@@ -101,7 +101,8 @@ Config service `app` & `migrate` dibaca dari **`.env.docker`** (via `env_file`),
 | POST   | `/api/v1/auth/login`    | -    | Login -> access + refresh token     |
 | POST   | `/api/v1/auth/refresh`  | -    | Tukar refresh token -> pasangan baru (rotation) |
 | POST   | `/api/v1/auth/logout`   | -    | Revoke refresh token                |
-| POST   | `/api/v1/auth/verify-email`    | - | Verifikasi email pakai token        |
+| POST   | `/api/v1/auth/verify-email`    | - | Verifikasi email pakai **OTP 6 digit** (`{email,code}`) |
+| POST   | `/api/v1/auth/resend-verification` | - | Kirim ulang kode OTP        |
 | POST   | `/api/v1/auth/forgot-password` | - | Kirim link reset (selalu 200, anti-enumeration) |
 | POST   | `/api/v1/auth/reset-password`  | - | Reset password pakai token          |
 | GET    | `/api/v1/users`         | ✅   | List/search user (raw query)        |

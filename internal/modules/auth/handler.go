@@ -84,10 +84,24 @@ func (h *Handler) VerifyEmail(c *fiber.Ctx) error {
 	if err := validator.Struct(req); err != nil {
 		return response.Error(c, err)
 	}
-	if err := h.svc.VerifyEmail(c.Context(), req.Token); err != nil {
+	if err := h.svc.VerifyEmail(c.Context(), req.Email, req.Code); err != nil {
 		return response.Error(c, err)
 	}
 	return response.OK(c, fiber.Map{"verified": true})
+}
+
+func (h *Handler) ResendVerification(c *fiber.Ctx) error {
+	var req ResendVerificationRequest
+	if err := c.BodyParser(&req); err != nil {
+		return response.Error(c, apperror.BadRequest("invalid request body"))
+	}
+	if err := validator.Struct(req); err != nil {
+		return response.Error(c, err)
+	}
+	if err := h.svc.ResendVerification(c.Context(), req.Email); err != nil {
+		return response.Error(c, err)
+	}
+	return response.OK(c, fiber.Map{"message": "if the email exists and is unverified, a new code has been sent"})
 }
 
 func (h *Handler) ForgotPassword(c *fiber.Ctx) error {

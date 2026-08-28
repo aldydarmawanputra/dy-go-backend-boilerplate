@@ -3,8 +3,6 @@ package auth
 import (
 	"context"
 	"errors"
-	"fmt"
-	"html"
 	"log/slog"
 	"time"
 
@@ -30,7 +28,8 @@ type Service interface {
 	Login(ctx context.Context, req LoginRequest) (*Tokens, error)
 	Refresh(ctx context.Context, refreshToken string) (*Tokens, error)
 	Logout(ctx context.Context, refreshToken string) error
-	VerifyEmail(ctx context.Context, token string) error
+	VerifyEmail(ctx context.Context, email, code string) error
+	ResendVerification(ctx context.Context, email string) error
 	ForgotPassword(ctx context.Context, email string) error
 	ResetPassword(ctx context.Context, token string, newPassword redact.Secret) error
 }
@@ -43,12 +42,13 @@ type service struct {
 	jwt     *jwtutil.Manager
 	refresh *RefreshStore
 	tokens  *TokenStore
+	otp     *OTPStore
 	mailer  mailer.Mailer
 	worker  *worker.Pool
 }
 
-func NewService(cfg *config.Config, users user.Service, repo user.Repository, roles role.Repository, jwt *jwtutil.Manager, refresh *RefreshStore, tokens *TokenStore, mail mailer.Mailer, pool *worker.Pool) Service {
-	return &service{cfg: cfg, users: users, repo: repo, roles: roles, jwt: jwt, refresh: refresh, tokens: tokens, mailer: mail, worker: pool}
+func NewService(cfg *config.Config, users user.Service, repo user.Repository, roles role.Repository, jwt *jwtutil.Manager, refresh *RefreshStore, tokens *TokenStore, otp *OTPStore, mail mailer.Mailer, pool *worker.Pool) Service {
+	return &service{cfg: cfg, users: users, repo: repo, roles: roles, jwt: jwt, refresh: refresh, tokens: tokens, otp: otp, mailer: mail, worker: pool}
 }
 
 func (s *service) Register(ctx context.Context, req RegisterRequest) (*user.User, error) {
@@ -60,7 +60,7 @@ func (s *service) Register(ctx context.Context, req RegisterRequest) (*user.User
 	if err != nil {
 		return nil, err
 	}
-	s.sendVerificationEmail(ctx, u.ID, u.Email, u.Name)
+	s.sendVerificationOTP(ctx, u.ID, u.Email, u.Name)
 	return u, nil
 }
 
@@ -102,18 +102,39 @@ func (s *service) Logout(ctx context.Context, refreshToken string) error {
 	return err
 }
 
-func (s *service) VerifyEmail(ctx context.Context, token string) error {
-	userID, err := s.tokens.Consume(ctx, nsVerify, token)
+func (s *service) VerifyEmail(ctx context.Context, email, code string) error {
+	u, err := s.repo.FindByEmail(ctx, sanitize.Email(email))
+	if err != nil {
+		return err
+	}
+	// Same generic error whether the email is unknown or the code is wrong.
+	if u == nil {
+		return apperror.BadRequest("invalid or expired code")
+	}
+	ok, err := s.otp.Verify(ctx, u.ID, code)
 	if errors.Is(err, ErrTokenStoreUnavailable) {
 		return apperror.New(503, "TOKEN_STORE_UNAVAILABLE", "verification is not available")
 	}
 	if err != nil {
 		return err
 	}
-	if userID == "" {
-		return apperror.BadRequest("invalid or expired token")
+	if !ok {
+		return apperror.BadRequest("invalid or expired code")
 	}
-	return s.repo.MarkEmailVerified(ctx, userID)
+	return s.repo.MarkEmailVerified(ctx, u.ID)
+}
+
+func (s *service) ResendVerification(ctx context.Context, email string) error {
+	u, err := s.repo.FindByEmail(ctx, sanitize.Email(email))
+	if err != nil {
+		return err
+	}
+	// Always succeed; only actually send for an existing, unverified account.
+	if u == nil || u.EmailVerified {
+		return nil
+	}
+	s.sendVerificationOTP(ctx, u.ID, u.Email, u.Name)
+	return nil
 }
 
 func (s *service) ForgotPassword(ctx context.Context, email string) error {
@@ -121,7 +142,6 @@ func (s *service) ForgotPassword(ctx context.Context, email string) error {
 	if err != nil {
 		return err
 	}
-	// Always succeed to avoid leaking which emails are registered.
 	if u == nil {
 		return nil
 	}
@@ -134,9 +154,7 @@ func (s *service) ForgotPassword(ctx context.Context, email string) error {
 	link := s.cfg.AppBaseURL + "/reset-password?token=" + token
 	email2, name := u.Email, u.Name
 	s.worker.Submit("reset-email", func(ctx context.Context) error {
-		body := fmt.Sprintf("<p>Hi %s,</p><p>Reset your password: <a href=\"%s\">%s</a></p>",
-			html.EscapeString(name), link, link)
-		return s.mailer.Send(ctx, email2, "Reset your password", body)
+		return s.mailer.Send(ctx, email2, "Reset your password", resetPasswordEmail(name, link))
 	})
 	return nil
 }
@@ -159,19 +177,17 @@ func (s *service) ResetPassword(ctx context.Context, token string, newPassword r
 	return s.repo.UpdatePassword(ctx, userID, hashed)
 }
 
-func (s *service) sendVerificationEmail(ctx context.Context, userID, email, name string) {
-	token, err := s.tokens.Issue(ctx, nsVerify, userID, time.Duration(s.cfg.VerifyTokenExpireHours)*time.Hour)
+func (s *service) sendVerificationOTP(ctx context.Context, userID, email, name string) {
+	code, err := s.otp.Issue(ctx, userID)
 	if err != nil {
 		if !errors.Is(err, ErrTokenStoreUnavailable) {
-			slog.Warn("issue verify token", "err", err)
+			slog.Warn("issue verification code", "err", err)
 		}
 		return
 	}
-	link := s.cfg.AppBaseURL + "/verify-email?token=" + token
+	minutes := s.cfg.VerifyCodeExpireMinutes
 	s.worker.Submit("verify-email", func(ctx context.Context) error {
-		body := fmt.Sprintf("<p>Hi %s,</p><p>Verify your email: <a href=\"%s\">%s</a></p>",
-			html.EscapeString(name), link, link)
-		return s.mailer.Send(ctx, email, "Verify your email", body)
+		return s.mailer.Send(ctx, email, "Your verification code", verifyOTPEmail(name, code, minutes))
 	})
 }
 

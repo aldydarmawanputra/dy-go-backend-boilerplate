@@ -30,13 +30,14 @@ type Config struct {
 
 	AppBaseURL string
 
-	JWTSecret              string
-	JWTIssuer              string
-	JWTAudience            string
-	JWTExpireHours         int
-	RefreshExpireHours     int
-	VerifyTokenExpireHours int
-	ResetTokenExpireHours  int
+	JWTSecret               string
+	JWTIssuer               string
+	JWTAudience             string
+	JWTExpireHours          int
+	RefreshExpireHours      int
+	VerifyCodeExpireMinutes int
+	VerifyMaxAttempts       int
+	ResetTokenExpireHours   int
 
 	CORSAllowOrigins     string
 	CORSAllowMethods     string
@@ -112,10 +113,11 @@ func Load() *Config {
 		JWTAudience: getEnv("JWT_AUDIENCE", "go-backend-boilerplate"),
 		AppBaseURL:  getEnv("APP_BASE_URL", "http://localhost:8080"),
 
-		JWTExpireHours:         getEnvInt("JWT_EXPIRE_HOURS", 24),
-		RefreshExpireHours:     getEnvInt("REFRESH_TOKEN_EXPIRE_HOURS", 168),
-		VerifyTokenExpireHours: getEnvInt("VERIFY_TOKEN_EXPIRE_HOURS", 24),
-		ResetTokenExpireHours:  getEnvInt("RESET_TOKEN_EXPIRE_HOURS", 1),
+		JWTExpireHours:          getEnvInt("JWT_EXPIRE_HOURS", 24),
+		RefreshExpireHours:      getEnvInt("REFRESH_TOKEN_EXPIRE_HOURS", 168),
+		VerifyCodeExpireMinutes: getEnvInt("VERIFY_CODE_EXPIRE_MINUTES", 10),
+		VerifyMaxAttempts:       getEnvInt("VERIFY_MAX_ATTEMPTS", 5),
+		ResetTokenExpireHours:   getEnvInt("RESET_TOKEN_EXPIRE_HOURS", 1),
 
 		CORSAllowOrigins:     getEnv("CORS_ALLOW_ORIGINS", "*"),
 		CORSAllowMethods:     getEnv("CORS_ALLOW_METHODS", "GET,POST,PUT,PATCH,DELETE,OPTIONS"),

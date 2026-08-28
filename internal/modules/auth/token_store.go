@@ -10,10 +10,7 @@ import (
 
 var ErrTokenStoreUnavailable = errors.New("token store unavailable")
 
-const (
-	nsVerify = "verify"
-	nsReset  = "reset"
-)
+const nsReset = "reset"
 
 // TokenStore issues and consumes single-use, expiring tokens (email verification,
 // password reset) backed by Redis. Consume is atomic (get + delete).

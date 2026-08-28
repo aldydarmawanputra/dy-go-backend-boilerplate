@@ -145,17 +145,31 @@
           }
         },
         {
-          "name": "Verify Email",
+          "name": "Verify Email (OTP)",
           "request": {
             "method": "POST",
             "auth": { "type": "noauth" },
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"token\": \"{{verify_token}}\"\n}",
+              "raw": "{\n  \"email\": \"aldy@example.com\",\n  \"code\": \"123456\"\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": { "raw": "{{base_url}}/api/v1/auth/verify-email", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "verify-email"] }
+          }
+        },
+        {
+          "name": "Resend Verification",
+          "request": {
+            "method": "POST",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"aldy@example.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/v1/auth/resend-verification", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "resend-verification"] }
           }
         },
         {

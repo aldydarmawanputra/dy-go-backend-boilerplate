@@ -35,8 +35,9 @@ func registerRoutes(app *fiber.App, cfg *config.Config, db *gorm.DB, rdb *redis.
 
 	refreshStore := authmod.NewRefreshStore(rdb, cfg.RefreshExpireHours)
 	tokenStore := authmod.NewTokenStore(rdb)
+	otpStore := authmod.NewOTPStore(rdb, cfg.VerifyCodeExpireMinutes, cfg.VerifyMaxAttempts)
 	mail := mailer.New(cfg)
-	authSvc := authmod.NewService(cfg, userSvc, userRepo, roleRepo, jwtMgr, refreshStore, tokenStore, mail, pool)
+	authSvc := authmod.NewService(cfg, userSvc, userRepo, roleRepo, jwtMgr, refreshStore, tokenStore, otpStore, mail, pool)
 	authHandler := authmod.NewHandler(authSvc)
 
 	app.Get("/health", healthHandler(db, rdb))
@@ -70,6 +71,7 @@ func registerRoutes(app *fiber.App, cfg *config.Config, db *gorm.DB, rdb *redis.
 	auth.Post("/refresh", authHandler.Refresh)
 	auth.Post("/logout", authHandler.Logout)
 	auth.Post("/verify-email", authHandler.VerifyEmail)
+	auth.Post("/resend-verification", authHandler.ResendVerification)
 	auth.Post("/forgot-password", authHandler.ForgotPassword)
 	auth.Post("/reset-password", authHandler.ResetPassword)
 

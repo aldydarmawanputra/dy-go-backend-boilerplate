@@ -33,8 +33,9 @@ func registerRoutes(app *fiber.App, cfg *config.Config, db *gorm.DB, rdb *redis.
 	userHandler := usermod.NewHandler(userSvc)
 
 	refreshStore := authmod.NewRefreshStore(rdb, cfg.RefreshExpireHours)
+	tokenStore := authmod.NewTokenStore(rdb)
 	mail := mailer.New(cfg)
-	authSvc := authmod.NewService(userSvc, userRepo, roleRepo, jwtMgr, refreshStore, mail, pool)
+	authSvc := authmod.NewService(cfg, userSvc, userRepo, roleRepo, jwtMgr, refreshStore, tokenStore, mail, pool)
 	authHandler := authmod.NewHandler(authSvc)
 
 	app.Get("/health", healthHandler(db, rdb))
@@ -67,6 +68,9 @@ func registerRoutes(app *fiber.App, cfg *config.Config, db *gorm.DB, rdb *redis.
 	auth.Post("/login", authHandler.Login)
 	auth.Post("/refresh", authHandler.Refresh)
 	auth.Post("/logout", authHandler.Logout)
+	auth.Post("/verify-email", authHandler.VerifyEmail)
+	auth.Post("/forgot-password", authHandler.ForgotPassword)
+	auth.Post("/reset-password", authHandler.ResetPassword)
 
 	if cfg.StorageDriver == "local" || cfg.StorageDriver == "" {
 		app.Static("/storage", cfg.StorageLocalPath)

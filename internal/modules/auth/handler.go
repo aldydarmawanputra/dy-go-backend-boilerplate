@@ -75,3 +75,45 @@ func (h *Handler) Logout(c *fiber.Ctx) error {
 	}
 	return response.NoContent(c)
 }
+
+func (h *Handler) VerifyEmail(c *fiber.Ctx) error {
+	var req VerifyEmailRequest
+	if err := c.BodyParser(&req); err != nil {
+		return response.Error(c, apperror.BadRequest("invalid request body"))
+	}
+	if err := validator.Struct(req); err != nil {
+		return response.Error(c, err)
+	}
+	if err := h.svc.VerifyEmail(c.Context(), req.Token); err != nil {
+		return response.Error(c, err)
+	}
+	return response.OK(c, fiber.Map{"verified": true})
+}
+
+func (h *Handler) ForgotPassword(c *fiber.Ctx) error {
+	var req ForgotPasswordRequest
+	if err := c.BodyParser(&req); err != nil {
+		return response.Error(c, apperror.BadRequest("invalid request body"))
+	}
+	if err := validator.Struct(req); err != nil {
+		return response.Error(c, err)
+	}
+	if err := h.svc.ForgotPassword(c.Context(), req.Email); err != nil {
+		return response.Error(c, err)
+	}
+	return response.OK(c, fiber.Map{"message": "if the email exists, a reset link has been sent"})
+}
+
+func (h *Handler) ResetPassword(c *fiber.Ctx) error {
+	var req ResetPasswordRequest
+	if err := c.BodyParser(&req); err != nil {
+		return response.Error(c, apperror.BadRequest("invalid request body"))
+	}
+	if err := validator.Struct(req); err != nil {
+		return response.Error(c, err)
+	}
+	if err := h.svc.ResetPassword(c.Context(), req.Token, req.Password); err != nil {
+		return response.Error(c, err)
+	}
+	return response.OK(c, fiber.Map{"message": "password updated"})
+}

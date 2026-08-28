@@ -15,6 +15,8 @@ type Repository interface {
 	FullTextSearch(ctx context.Context, query string, limit, offset int) ([]User, int64, error)
 	Save(ctx context.Context, u *User) error
 	Delete(ctx context.Context, id string) error
+	UpdatePassword(ctx context.Context, id, passwordHash string) error
+	MarkEmailVerified(ctx context.Context, id string) error
 }
 
 type repository struct {
@@ -124,4 +126,12 @@ func (r *repository) Save(ctx context.Context, u *User) error {
 
 func (r *repository) Delete(ctx context.Context, id string) error {
 	return r.db.WithContext(ctx).Delete(&User{}, "id = ?", id).Error
+}
+
+func (r *repository) UpdatePassword(ctx context.Context, id, passwordHash string) error {
+	return r.db.WithContext(ctx).Model(&User{}).Where("id = ?", id).Update("password_hash", passwordHash).Error
+}
+
+func (r *repository) MarkEmailVerified(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Model(&User{}).Where("id = ?", id).Update("email_verified", true).Error
 }

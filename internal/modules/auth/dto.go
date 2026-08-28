@@ -17,6 +17,19 @@ type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token" validate:"required"`
 }
 
+type VerifyEmailRequest struct {
+	Token string `json:"token" validate:"required"`
+}
+
+type ForgotPasswordRequest struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
+type ResetPasswordRequest struct {
+	Token    string        `json:"token" validate:"required"`
+	Password redact.Secret `json:"password" validate:"required,min=6,max=72"`
+}
+
 type TokenResponse struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token,omitempty"`

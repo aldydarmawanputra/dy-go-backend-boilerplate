@@ -28,11 +28,15 @@ type Config struct {
 	RedisPassword string
 	RedisDB       int
 
-	JWTSecret          string
-	JWTIssuer          string
-	JWTAudience        string
-	JWTExpireHours     int
-	RefreshExpireHours int
+	AppBaseURL string
+
+	JWTSecret              string
+	JWTIssuer              string
+	JWTAudience            string
+	JWTExpireHours         int
+	RefreshExpireHours     int
+	VerifyTokenExpireHours int
+	ResetTokenExpireHours  int
 
 	CORSAllowOrigins     string
 	CORSAllowMethods     string
@@ -103,11 +107,15 @@ func Load() *Config {
 		RedisPassword: getEnv("REDIS_PASSWORD", ""),
 		RedisDB:       getEnvInt("REDIS_DB", 0),
 
-		JWTSecret:          getEnv("JWT_SECRET", "change-me-in-production"),
-		JWTIssuer:          getEnv("JWT_ISSUER", "go-backend-boilerplate"),
-		JWTAudience:        getEnv("JWT_AUDIENCE", "go-backend-boilerplate"),
-		JWTExpireHours:     getEnvInt("JWT_EXPIRE_HOURS", 24),
-		RefreshExpireHours: getEnvInt("REFRESH_TOKEN_EXPIRE_HOURS", 168),
+		JWTSecret:   getEnv("JWT_SECRET", "change-me-in-production"),
+		JWTIssuer:   getEnv("JWT_ISSUER", "go-backend-boilerplate"),
+		JWTAudience: getEnv("JWT_AUDIENCE", "go-backend-boilerplate"),
+		AppBaseURL:  getEnv("APP_BASE_URL", "http://localhost:8080"),
+
+		JWTExpireHours:         getEnvInt("JWT_EXPIRE_HOURS", 24),
+		RefreshExpireHours:     getEnvInt("REFRESH_TOKEN_EXPIRE_HOURS", 168),
+		VerifyTokenExpireHours: getEnvInt("VERIFY_TOKEN_EXPIRE_HOURS", 24),
+		ResetTokenExpireHours:  getEnvInt("RESET_TOKEN_EXPIRE_HOURS", 1),
 
 		CORSAllowOrigins:     getEnv("CORS_ALLOW_ORIGINS", "*"),
 		CORSAllowMethods:     getEnv("CORS_ALLOW_METHODS", "GET,POST,PUT,PATCH,DELETE,OPTIONS"),

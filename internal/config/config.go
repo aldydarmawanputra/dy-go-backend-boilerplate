@@ -58,6 +58,9 @@ type Config struct {
 	SMTPPassword string
 	SMTPFrom     string
 
+	PaymentProvider string
+	PaymentCurrency string
+
 	StorageDriver        string
 	StorageLocalPath     string
 	StoragePublicBaseURL string
@@ -128,6 +131,9 @@ func Load() *Config {
 		SMTPUser:     getEnv("SMTP_USER", ""),
 		SMTPPassword: getEnv("SMTP_PASSWORD", ""),
 		SMTPFrom:     getEnv("SMTP_FROM", "no-reply@example.com"),
+
+		PaymentProvider: getEnv("PAYMENT_PROVIDER", "stub"),
+		PaymentCurrency: getEnv("PAYMENT_CURRENCY", "IDR"),
 
 		StorageDriver:        getEnv("STORAGE_DRIVER", "local"),
 		StorageLocalPath:     getEnv("STORAGE_LOCAL_PATH", "./storage"),

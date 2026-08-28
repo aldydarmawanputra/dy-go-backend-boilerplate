@@ -1,6 +1,8 @@
 package server
 
 import (
+	"log/slog"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -11,8 +13,10 @@ import (
 	authmod "go-backend-boilerplate/internal/modules/auth"
 	docsmod "go-backend-boilerplate/internal/modules/docs"
 	filemod "go-backend-boilerplate/internal/modules/file"
+	paymentmod "go-backend-boilerplate/internal/modules/payment"
 	rolemod "go-backend-boilerplate/internal/modules/role"
 	usermod "go-backend-boilerplate/internal/modules/user"
+	paygw "go-backend-boilerplate/internal/payment"
 	"go-backend-boilerplate/internal/realtime"
 	"go-backend-boilerplate/internal/shared/apperror"
 	"go-backend-boilerplate/internal/shared/jwtutil"
@@ -69,6 +73,16 @@ func registerRoutes(app *fiber.App, cfg *config.Config, db *gorm.DB, rdb *redis.
 	fileHandler := filemod.NewHandler(store)
 	files := v1.Group("/files", middleware.Auth(jwtMgr))
 	files.Post("/", fileHandler.Upload)
+
+	if gw, err := paygw.New(cfg); err != nil {
+		slog.Warn("payment gateway disabled", "err", err)
+	} else {
+		paymentSvc := paymentmod.NewService(paymentmod.NewRepository(db), gw)
+		paymentHandler := paymentmod.NewHandler(paymentSvc, cfg.PaymentCurrency)
+		payments := v1.Group("/payments")
+		payments.Post("/", middleware.Auth(jwtMgr), paymentHandler.Create)
+		payments.Post("/webhook", paymentHandler.Webhook)
+	}
 
 	users := v1.Group("/users", middleware.Auth(jwtMgr))
 	users.Get("/", userHandler.List)

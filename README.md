@@ -172,6 +172,13 @@ curl -s localhost:8080/api/v1/users/xxx -H "Accept-Language: id" ...
 
 Nambah bahasa = tambah entri di `catalog`. Nambah pesan = tambah key baru.
 
+## Payment (kerangka)
+
+Abstraksi `payment.Gateway` (interface `Charge` + `ParseWebhook`) dengan driver `PAYMENT_PROVIDER` — sekarang cuma **`stub`** (bikin charge palsu, tanpa network). Integrasi Midtrans/Xendit/Stripe tinggal implement `Gateway` dan daftarin di `payment.New()`.
+
+- `POST /api/v1/payments` (login) → bikin charge, simpan ke tabel `payments`, balikin `payment_url`.
+- `POST /api/v1/payments/webhook` (public) → update status by `order_id`. **Di provider beneran, verifikasi signature dulu di sini.**
+
 ## Realtime (WebSocket)
 
 Kerangka pub/sub general di `internal/realtime`: satu `Hub` (broadcast ke semua client, register/unregister, drop client lambat). Endpoint:

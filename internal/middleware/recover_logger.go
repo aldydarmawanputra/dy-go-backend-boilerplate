@@ -6,6 +6,7 @@ import (
 
 	"github.com/gofiber/contrib/otelfiber/v2"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/helmet"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
@@ -27,6 +28,7 @@ func Setup(app *fiber.App, cfg *config.Config, rdb *redis.Client) {
 		app.Use(otelfiber.Middleware())
 	}
 	app.Use(requestLogger())
+	app.Use(compress.New())
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     cfg.CORSAllowOrigins,
 		AllowMethods:     cfg.CORSAllowMethods,

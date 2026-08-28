@@ -61,7 +61,7 @@ func registerRoutes(app *fiber.App, cfg *config.Config, db *gorm.DB, rdb *redis.
 		return response.OK(c, fiber.Map{"clients": hub.Count()})
 	})
 
-	auth := v1.Group("/auth", middleware.RateLimit(cfg.AuthRateLimitMax, cfg.RateLimitWindowSec))
+	auth := v1.Group("/auth", middleware.RateLimit(cfg.AuthRateLimitMax, cfg.RateLimitWindowSec, middleware.RedisStorage(rdb)))
 	auth.Post("/register", authHandler.Register)
 	auth.Post("/login", authHandler.Login)
 	auth.Post("/refresh", authHandler.Refresh)

@@ -26,7 +26,7 @@ func New(cfg *config.Config, db *gorm.DB, rdb *redis.Client, store storage.Stora
 		BodyLimit:    cfg.BodyLimitBytes,
 	})
 
-	middleware.Setup(app, cfg)
+	middleware.Setup(app, cfg, rdb)
 
 	hub := realtime.NewHub()
 	go hub.Run()

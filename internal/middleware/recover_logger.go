@@ -11,13 +11,14 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
+	"github.com/redis/go-redis/v9"
 
 	"go-backend-boilerplate/internal/config"
 	"go-backend-boilerplate/internal/shared/apperror"
 	"go-backend-boilerplate/internal/shared/response"
 )
 
-func Setup(app *fiber.App, cfg *config.Config) {
+func Setup(app *fiber.App, cfg *config.Config, rdb *redis.Client) {
 	app.Use(requestid.New())
 	app.Use(recover.New())
 	app.Use(helmet.New())
@@ -32,7 +33,7 @@ func Setup(app *fiber.App, cfg *config.Config) {
 		AllowHeaders:     cfg.CORSAllowHeaders,
 		AllowCredentials: cfg.CORSAllowCredentials,
 	}))
-	app.Use(RateLimit(cfg.RateLimitMax, cfg.RateLimitWindowSec))
+	app.Use(RateLimit(cfg.RateLimitMax, cfg.RateLimitWindowSec, RedisStorage(rdb)))
 }
 
 func requestLogger() fiber.Handler {
@@ -56,12 +57,16 @@ func requestLogger() fiber.Handler {
 	}
 }
 
-func RateLimit(max, windowSec int) fiber.Handler {
-	return limiter.New(limiter.Config{
+func RateLimit(max, windowSec int, store fiber.Storage) fiber.Handler {
+	cfg := limiter.Config{
 		Max:        max,
 		Expiration: time.Duration(windowSec) * time.Second,
 		LimitReached: func(c *fiber.Ctx) error {
 			return response.Error(c, apperror.New(fiber.StatusTooManyRequests, "TOO_MANY_REQUESTS", "rate limit exceeded"))
 		},
-	})
+	}
+	if store != nil {
+		cfg.Storage = store
+	}
+	return limiter.New(cfg)
 }

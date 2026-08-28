@@ -52,6 +52,12 @@ type Config struct {
 	OTelEndpoint    string
 	OTelInsecure    bool
 
+	SMTPHost     string
+	SMTPPort     string
+	SMTPUser     string
+	SMTPPassword string
+	SMTPFrom     string
+
 	StorageDriver        string
 	StorageLocalPath     string
 	StoragePublicBaseURL string
@@ -116,6 +122,12 @@ func Load() *Config {
 		OTelServiceName: getEnv("OTEL_SERVICE_NAME", "go-backend-boilerplate"),
 		OTelEndpoint:    getEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:4318"),
 		OTelInsecure:    getEnvBool("OTEL_EXPORTER_OTLP_INSECURE", true),
+
+		SMTPHost:     getEnv("SMTP_HOST", "localhost"),
+		SMTPPort:     getEnv("SMTP_PORT", "1025"),
+		SMTPUser:     getEnv("SMTP_USER", ""),
+		SMTPPassword: getEnv("SMTP_PASSWORD", ""),
+		SMTPFrom:     getEnv("SMTP_FROM", "no-reply@example.com"),
 
 		StorageDriver:        getEnv("STORAGE_DRIVER", "local"),
 		StorageLocalPath:     getEnv("STORAGE_LOCAL_PATH", "./storage"),

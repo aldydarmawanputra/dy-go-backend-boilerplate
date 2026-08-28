@@ -27,6 +27,13 @@ services:
       timeout: 3s
       retries: 5
 
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: aldy-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
   migrate:
     image: amacneil/dbmate:2
     working_dir: /

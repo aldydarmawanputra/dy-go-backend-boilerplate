@@ -6,6 +6,7 @@ import (
 	"gorm.io/gorm"
 
 	"go-backend-boilerplate/internal/config"
+	"go-backend-boilerplate/internal/mailer"
 	"go-backend-boilerplate/internal/middleware"
 	authmod "go-backend-boilerplate/internal/modules/auth"
 	docsmod "go-backend-boilerplate/internal/modules/docs"
@@ -25,7 +26,8 @@ func registerRoutes(app *fiber.App, cfg *config.Config, db *gorm.DB, rdb *redis.
 	userHandler := usermod.NewHandler(userSvc)
 
 	refreshStore := authmod.NewRefreshStore(rdb, cfg.RefreshExpireHours)
-	authSvc := authmod.NewService(userSvc, userRepo, roleRepo, jwtMgr, refreshStore)
+	mail := mailer.New(cfg)
+	authSvc := authmod.NewService(userSvc, userRepo, roleRepo, jwtMgr, refreshStore, mail)
 	authHandler := authmod.NewHandler(authSvc)
 
 	app.Get("/health", healthHandler(db, rdb))

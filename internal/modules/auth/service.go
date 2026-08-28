@@ -3,7 +3,10 @@ package auth
 import (
 	"context"
 	"errors"
+	"html"
+	"log/slog"
 
+	"go-backend-boilerplate/internal/mailer"
 	"go-backend-boilerplate/internal/modules/role"
 	"go-backend-boilerplate/internal/modules/user"
 	"go-backend-boilerplate/internal/shared/apperror"
@@ -30,18 +33,31 @@ type service struct {
 	roles   role.Repository
 	jwt     *jwtutil.Manager
 	refresh *RefreshStore
+	mailer  mailer.Mailer
 }
 
-func NewService(users user.Service, repo user.Repository, roles role.Repository, jwt *jwtutil.Manager, refresh *RefreshStore) Service {
-	return &service{users: users, repo: repo, roles: roles, jwt: jwt, refresh: refresh}
+func NewService(users user.Service, repo user.Repository, roles role.Repository, jwt *jwtutil.Manager, refresh *RefreshStore, mail mailer.Mailer) Service {
+	return &service{users: users, repo: repo, roles: roles, jwt: jwt, refresh: refresh, mailer: mail}
 }
 
 func (s *service) Register(ctx context.Context, req RegisterRequest) (*user.User, error) {
-	return s.users.Create(ctx, user.CreateRequest{
+	u, err := s.users.Create(ctx, user.CreateRequest{
 		Email:    req.Email,
 		Name:     req.Name,
 		Password: req.Password,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	go func(email, name string) {
+		body := "<p>Welcome, " + html.EscapeString(name) + "!</p>"
+		if err := s.mailer.Send(context.Background(), email, "Welcome", body); err != nil {
+			slog.Warn("send welcome email", "err", err)
+		}
+	}(u.Email, u.Name)
+
+	return u, nil
 }
 
 func (s *service) Login(ctx context.Context, req LoginRequest) (*Tokens, error) {

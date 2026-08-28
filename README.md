@@ -160,6 +160,22 @@ Semua ID tabel entity pakai **UUID (google/uuid)**, di-generate otomatis lewat G
   ON CONFLICT DO NOTHING;
   ```
 
+## Email (SMTP)
+
+`mailer.Mailer` pakai SMTP standar (net/smtp, zero-dep). Default nunjuk ke **Mailpit** (`docker compose up mailpit`) — email nyangkut di UI `http://localhost:8025`, ga keluar ke inbox beneran, **gratis** buat dev. Register ngirim welcome email (best-effort, ga nge-block).
+
+Ganti ke email beneran tinggal edit `.env` (contoh Gmail):
+
+```
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=you@gmail.com
+SMTP_PASSWORD=<app-password>
+SMTP_FROM=you@gmail.com
+```
+
+net/smtp otomatis STARTTLS di `:587`. Kalau `SMTP_USER` kosong → tanpa auth (Mailpit).
+
 ## File storage
 
 Abstraksi `storage.Storage` dengan driver dipilih lewat `STORAGE_DRIVER`:

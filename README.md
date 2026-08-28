@@ -84,6 +84,8 @@ docker compose up --build
 
 Urutan: Postgres + Redis up -> service `migrate` jalan -> app start.
 
+Config service `app` & `migrate` dibaca dari **`.env.docker`** (via `env_file`), bukan `environment` inline. Hostname di situ pakai nama service compose (`DB_HOST=postgres`, `REDIS_HOST=redis`) — beda dari `.env` lokal yang pakai `localhost`. `.env` asli & semua `.env*` tidak ikut ke image (lihat `.dockerignore`).
+
 ## Endpoint
 
 | Method | Path                    | Auth | Keterangan                          |

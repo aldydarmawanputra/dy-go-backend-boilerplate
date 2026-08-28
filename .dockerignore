@@ -1,0 +1,17 @@
+# VCS & repo meta
+.git
+.gitignore
+.gitattributes
+
+# Env files — provided at runtime via compose env_file, never baked into the image
+.env*
+
+# Build output
+bin/
+*.exe
+
+# Logs & editor
+*.log
+.vscode/
+.idea/
+.DS_Store

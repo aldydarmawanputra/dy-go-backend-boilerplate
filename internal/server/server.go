@@ -12,9 +12,10 @@ import (
 	"go-backend-boilerplate/internal/shared/apperror"
 	"go-backend-boilerplate/internal/shared/jwtutil"
 	"go-backend-boilerplate/internal/shared/response"
+	"go-backend-boilerplate/internal/storage"
 )
 
-func New(cfg *config.Config, db *gorm.DB, rdb *redis.Client) *fiber.App {
+func New(cfg *config.Config, db *gorm.DB, rdb *redis.Client, store storage.Storage) *fiber.App {
 	app := fiber.New(fiber.Config{
 		AppName:      "go-backend-boilerplate",
 		ErrorHandler: errorHandler,
@@ -27,7 +28,7 @@ func New(cfg *config.Config, db *gorm.DB, rdb *redis.Client) *fiber.App {
 	middleware.Setup(app, cfg)
 
 	jwtMgr := jwtutil.New(cfg.JWTSecret, cfg.JWTIssuer, cfg.JWTAudience, cfg.JWTExpireHours)
-	registerRoutes(app, cfg, db, rdb, jwtMgr)
+	registerRoutes(app, cfg, db, rdb, store, jwtMgr)
 
 	return app
 }

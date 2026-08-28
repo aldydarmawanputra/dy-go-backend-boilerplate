@@ -14,6 +14,7 @@ import (
 	"go-backend-boilerplate/internal/observability"
 	"go-backend-boilerplate/internal/server"
 	"go-backend-boilerplate/internal/shared/logging"
+	"go-backend-boilerplate/internal/storage"
 )
 
 func main() {
@@ -50,7 +51,13 @@ func main() {
 		slog.Warn("redis not reachable", "addr", cfg.RedisAddr(), "err", err)
 	}
 
-	app := server.New(cfg, db, rdb)
+	store, err := storage.New(context.Background(), cfg)
+	if err != nil {
+		slog.Error("storage init", "err", err)
+		os.Exit(1)
+	}
+
+	app := server.New(cfg, db, rdb, store)
 
 	go func() {
 		if err := app.Listen(cfg.Addr()); err != nil {

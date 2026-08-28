@@ -15,3 +15,6 @@ app
 .idea/
 .vscode/
 *.log
+
+# runtime file storage (local driver)
+/storage/

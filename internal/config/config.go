@@ -51,6 +51,21 @@ type Config struct {
 	OTelEndpoint    string
 	OTelInsecure    bool
 
+	StorageDriver        string
+	StorageLocalPath     string
+	StoragePublicBaseURL string
+
+	R2AccountID       string
+	R2AccessKeyID     string
+	R2SecretAccessKey string
+	R2Bucket          string
+	R2PublicBaseURL   string
+
+	SupabaseURL           string
+	SupabaseServiceKey    string
+	SupabaseBucket        string
+	SupabasePublicBaseURL string
+
 	AutoMigrate bool
 }
 
@@ -99,6 +114,21 @@ func Load() *Config {
 		OTelServiceName: getEnv("OTEL_SERVICE_NAME", "go-backend-boilerplate"),
 		OTelEndpoint:    getEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:4318"),
 		OTelInsecure:    getEnvBool("OTEL_EXPORTER_OTLP_INSECURE", true),
+
+		StorageDriver:        getEnv("STORAGE_DRIVER", "local"),
+		StorageLocalPath:     getEnv("STORAGE_LOCAL_PATH", "./storage"),
+		StoragePublicBaseURL: getEnv("STORAGE_PUBLIC_BASE_URL", "http://localhost:8080/storage"),
+
+		R2AccountID:       getEnv("R2_ACCOUNT_ID", ""),
+		R2AccessKeyID:     getEnv("R2_ACCESS_KEY_ID", ""),
+		R2SecretAccessKey: getEnv("R2_SECRET_ACCESS_KEY", ""),
+		R2Bucket:          getEnv("R2_BUCKET", ""),
+		R2PublicBaseURL:   getEnv("R2_PUBLIC_BASE_URL", ""),
+
+		SupabaseURL:           getEnv("SUPABASE_URL", ""),
+		SupabaseServiceKey:    getEnv("SUPABASE_SERVICE_KEY", ""),
+		SupabaseBucket:        getEnv("SUPABASE_BUCKET", ""),
+		SupabasePublicBaseURL: getEnv("SUPABASE_PUBLIC_BASE_URL", ""),
 
 		AutoMigrate: getEnvBool("AUTO_MIGRATE", false),
 	}

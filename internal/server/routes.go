@@ -9,13 +9,15 @@ import (
 	"go-backend-boilerplate/internal/middleware"
 	authmod "go-backend-boilerplate/internal/modules/auth"
 	docsmod "go-backend-boilerplate/internal/modules/docs"
+	filemod "go-backend-boilerplate/internal/modules/file"
 	rolemod "go-backend-boilerplate/internal/modules/role"
 	usermod "go-backend-boilerplate/internal/modules/user"
 	"go-backend-boilerplate/internal/shared/jwtutil"
 	"go-backend-boilerplate/internal/shared/response"
+	"go-backend-boilerplate/internal/storage"
 )
 
-func registerRoutes(app *fiber.App, cfg *config.Config, db *gorm.DB, rdb *redis.Client, jwtMgr *jwtutil.Manager) {
+func registerRoutes(app *fiber.App, cfg *config.Config, db *gorm.DB, rdb *redis.Client, store storage.Storage, jwtMgr *jwtutil.Manager) {
 	roleRepo := rolemod.NewRepository(db)
 
 	userRepo := usermod.NewRepository(db)
@@ -39,6 +41,13 @@ func registerRoutes(app *fiber.App, cfg *config.Config, db *gorm.DB, rdb *redis.
 	auth := v1.Group("/auth", middleware.RateLimit(cfg.AuthRateLimitMax, cfg.RateLimitWindowSec))
 	auth.Post("/register", authHandler.Register)
 	auth.Post("/login", authHandler.Login)
+
+	if cfg.StorageDriver == "local" || cfg.StorageDriver == "" {
+		app.Static("/storage", cfg.StorageLocalPath)
+	}
+	fileHandler := filemod.NewHandler(store)
+	files := v1.Group("/files", middleware.Auth(jwtMgr))
+	files.Post("/", fileHandler.Upload)
 
 	users := v1.Group("/users", middleware.Auth(jwtMgr))
 	users.Get("/", userHandler.List)

@@ -106,6 +106,7 @@ Config service `app` & `migrate` dibaca dari **`.env.docker`** (via `env_file`),
 | PUT    | `/api/v1/users/:id`     | ✅   | Replace (name + detail)             |
 | PATCH  | `/api/v1/users/:id`     | ✅   | Partial update                      |
 | DELETE | `/api/v1/users/:id`     | admin | Hapus user (cascade ke detail)    |
+| POST   | `/api/v1/files`         | ✅   | Upload file (multipart `file`) → `{key,url}` |
 
 Envelope response konsisten:
 
@@ -156,6 +157,16 @@ Semua ID tabel entity pakai **UUID (google/uuid)**, di-generate otomatis lewat G
   SELECT '<user-uuid>', id FROM roles WHERE name = 'admin'
   ON CONFLICT DO NOTHING;
   ```
+
+## File storage
+
+Abstraksi `storage.Storage` dengan driver dipilih lewat `STORAGE_DRIVER`:
+
+- `local` (default) — simpan ke `STORAGE_LOCAL_PATH` (`./storage`), disajikan di `GET /storage/*`. URL publik dari `STORAGE_PUBLIC_BASE_URL`.
+- `r2` — Cloudflare R2 (S3-compatible via aws-sdk-go-v2). Isi `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_BASE_URL`.
+- `supabase` — Supabase Storage (REST). Isi `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `SUPABASE_BUCKET`, `SUPABASE_PUBLIC_BASE_URL`.
+
+Upload: `POST /api/v1/files` (multipart, field `file`) → `{ "key": "...", "url": "..." }`. Key di-generate UUID + ekstensi; driver local aman dari path-traversal (`filepath.Clean`).
 
 ## Migrasi (dbmate)
 

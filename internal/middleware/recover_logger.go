@@ -1,13 +1,13 @@
 package middleware
 
 import (
+	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/helmet"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
-	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
 
@@ -20,9 +20,7 @@ func Setup(app *fiber.App, cfg *config.Config) {
 	app.Use(requestid.New())
 	app.Use(recover.New())
 	app.Use(helmet.New())
-	app.Use(logger.New(logger.Config{
-		Format: "[${time}] ${status} ${latency} ${method} ${path} (req=${locals:requestid})\n",
-	}))
+	app.Use(requestLogger())
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     cfg.CORSAllowOrigins,
 		AllowMethods:     cfg.CORSAllowMethods,
@@ -30,6 +28,27 @@ func Setup(app *fiber.App, cfg *config.Config) {
 		AllowCredentials: cfg.CORSAllowCredentials,
 	}))
 	app.Use(RateLimit(cfg.RateLimitMax, cfg.RateLimitWindowSec))
+}
+
+func requestLogger() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		start := time.Now()
+		err := c.Next()
+
+		attrs := []any{
+			"method", c.Method(),
+			"path", c.Path(),
+			"status", c.Response().StatusCode(),
+			"latency_ms", time.Since(start).Milliseconds(),
+			"request_id", c.Locals("requestid"),
+			"ip", c.IP(),
+		}
+		if err != nil {
+			attrs = append(attrs, "error", err.Error())
+		}
+		slog.Info("request", attrs...)
+		return err
+	}
 }
 
 func RateLimit(max, windowSec int) fiber.Handler {

@@ -22,6 +22,9 @@ internal/
     response/            #   envelope JSON standar {success,data,error,meta}
     validator/           #   wrapper go-playground/validator
     redact/              #   tipe Secret (auto [REDACTED] di JSON/log) + mask helper
+    sanitize/            #   trim/normalisasi input (zero-trust)
+    pagination/          #   params + meta (limit/offset/total)
+    logging/             #   setup slog (JSON di prod, text di dev)
     hash/                #   bcrypt hash & compare
     jwtutil/             #   generate & parse JWT
   modules/

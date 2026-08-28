@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,48 +11,54 @@ import (
 	"go-backend-boilerplate/internal/config"
 	"go-backend-boilerplate/internal/database"
 	"go-backend-boilerplate/internal/server"
+	"go-backend-boilerplate/internal/shared/logging"
 )
 
 func main() {
 	cfg := config.Load()
+	logging.Setup(cfg.AppEnv)
 
 	if err := database.EnsureDatabase(cfg); err != nil {
-		log.Fatalf("failed to ensure database exists: %v", err)
+		slog.Error("ensure database", "err", err)
+		os.Exit(1)
 	}
 
 	db, err := database.Connect(cfg)
 	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
+		slog.Error("connect database", "err", err)
+		os.Exit(1)
 	}
 
 	if cfg.AutoMigrate {
 		if err := database.AutoMigrate(db); err != nil {
-			log.Fatalf("auto-migrate failed: %v", err)
+			slog.Error("auto-migrate", "err", err)
+			os.Exit(1)
 		}
-		log.Println("auto-migrate completed")
+		slog.Info("auto-migrate completed")
 	}
 
 	rdb, err := cache.Connect(cfg)
 	if err != nil {
-		log.Printf("warning: redis not reachable at %s: %v", cfg.RedisAddr(), err)
+		slog.Warn("redis not reachable", "addr", cfg.RedisAddr(), "err", err)
 	}
 
 	app := server.New(cfg, db, rdb)
 
 	go func() {
 		if err := app.Listen(cfg.Addr()); err != nil {
-			log.Fatalf("server error: %v", err)
+			slog.Error("server error", "err", err)
+			os.Exit(1)
 		}
 	}()
-	log.Printf("server listening on %s (env=%s)", cfg.Addr(), cfg.AppEnv)
+	slog.Info("server listening", "addr", cfg.Addr(), "env", cfg.AppEnv)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	log.Println("shutting down server...")
+	slog.Info("shutting down server")
 
 	if err := app.ShutdownWithTimeout(10 * time.Second); err != nil {
-		log.Printf("forced shutdown: %v", err)
+		slog.Error("forced shutdown", "err", err)
 	}
 	if rdb != nil {
 		_ = rdb.Close()
@@ -60,5 +66,5 @@ func main() {
 	if sqlDB, err := db.DB(); err == nil {
 		_ = sqlDB.Close()
 	}
-	log.Println("server stopped")
+	slog.Info("server stopped")
 }

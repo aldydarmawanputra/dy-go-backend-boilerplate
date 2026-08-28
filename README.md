@@ -160,6 +160,17 @@ Semua ID tabel entity pakai **UUID (google/uuid)**, di-generate otomatis lewat G
   ON CONFLICT DO NOTHING;
   ```
 
+## i18n (multi-bahasa)
+
+Pesan error diterjemah otomatis berdasarkan **locale request**: dari `?lang=id` atau header `Accept-Language`. Didukung `en` (default) & `id`. Katalog di `internal/shared/i18n`. Client sebaiknya tetap pakai `error.code` yang stabil; `error.message` yang human-readable ngikut bahasa.
+
+```bash
+curl -s localhost:8080/api/v1/users/xxx -H "Accept-Language: id" ...
+# {"success":false,"error":{"code":"UNAUTHORIZED","message":"tidak terautentikasi"}}
+```
+
+Nambah bahasa = tambah entri di `catalog`. Nambah pesan = tambah key baru.
+
 ## Email (SMTP)
 
 `mailer.Mailer` pakai SMTP standar (net/smtp, zero-dep). Default nunjuk ke **Mailpit** (`docker compose up mailpit`) — email nyangkut di UI `http://localhost:8025`, ga keluar ke inbox beneran, **gratis** buat dev. Register ngirim welcome email (best-effort, ga nge-block).

@@ -21,6 +21,7 @@ func Setup(app *fiber.App, cfg *config.Config) {
 	app.Use(requestid.New())
 	app.Use(recover.New())
 	app.Use(helmet.New())
+	app.Use(Locale())
 	if cfg.OTelEnabled {
 		app.Use(otelfiber.Middleware())
 	}

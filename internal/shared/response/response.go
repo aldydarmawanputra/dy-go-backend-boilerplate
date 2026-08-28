@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"go-backend-boilerplate/internal/shared/apperror"
+	"go-backend-boilerplate/internal/shared/i18n"
 )
 
 type Envelope struct {
@@ -30,5 +31,15 @@ func Error(c *fiber.Ctx, err error) error {
 	if !ok {
 		appErr = apperror.Internal("something went wrong")
 	}
-	return c.Status(appErr.Status).JSON(Envelope{Success: false, Error: appErr})
+
+	loc, _ := c.Locals("locale").(string)
+	if loc == "" {
+		loc = i18n.Default
+	}
+
+	// Copy so the shared instance is never mutated; localize the message by code,
+	// keeping the original English message as fallback.
+	localized := *appErr
+	localized.Message = i18n.T(loc, appErr.Code, appErr.Message)
+	return c.Status(localized.Status).JSON(Envelope{Success: false, Error: &localized})
 }

@@ -1,0 +1,17 @@
+# binaries
+/bin/
+*.exe
+app
+
+# env (keep .env.example, ignore real secrets)
+.env
+.env.local
+
+# dependencies
+/vendor/
+
+# os / editor
+.DS_Store
+.idea/
+.vscode/
+*.log

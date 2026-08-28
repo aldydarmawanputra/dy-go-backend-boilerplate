@@ -1,0 +1,77 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: aldy-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: aldy_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: aldy-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  migrate:
+    image: amacneil/dbmate:2
+    working_dir: /
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgres://postgres:postgres@postgres:5432/aldy_dev?sslmode=disable"
+    volumes:
+      - ./db:/db
+    command: ["up"]
+
+  app:
+    build: .
+    container_name: aldy-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      APP_HOST: "0.0.0.0"
+      APP_PORT: "8080"
+      APP_ENV: "development"
+      DB_HOST: "postgres"
+      DB_PORT: "5432"
+      DB_NAME: "aldy_dev"
+      DB_USER: "postgres"
+      DB_PASSWORD: "postgres"
+      DB_SSLMODE: "disable"
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ""
+      REDIS_DB: "0"
+      JWT_SECRET: "change-me-in-production"
+      JWT_EXPIRE_HOURS: "24"
+      CORS_ALLOW_ORIGINS: "*"
+      CORS_ALLOW_METHODS: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+      CORS_ALLOW_HEADERS: "Origin,Content-Type,Accept,Authorization"
+      CORS_ALLOW_CREDENTIALS: "false"
+      AUTO_MIGRATE: "false"
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:

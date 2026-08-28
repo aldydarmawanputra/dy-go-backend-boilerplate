@@ -9,6 +9,7 @@ import (
 
 	"go-backend-boilerplate/internal/config"
 	"go-backend-boilerplate/internal/middleware"
+	"go-backend-boilerplate/internal/realtime"
 	"go-backend-boilerplate/internal/shared/apperror"
 	"go-backend-boilerplate/internal/shared/jwtutil"
 	"go-backend-boilerplate/internal/shared/response"
@@ -27,8 +28,11 @@ func New(cfg *config.Config, db *gorm.DB, rdb *redis.Client, store storage.Stora
 
 	middleware.Setup(app, cfg)
 
+	hub := realtime.NewHub()
+	go hub.Run()
+
 	jwtMgr := jwtutil.New(cfg.JWTSecret, cfg.JWTIssuer, cfg.JWTAudience, cfg.JWTExpireHours)
-	registerRoutes(app, cfg, db, rdb, store, jwtMgr)
+	registerRoutes(app, cfg, db, rdb, store, hub, jwtMgr)
 
 	return app
 }

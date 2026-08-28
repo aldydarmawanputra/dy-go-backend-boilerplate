@@ -172,6 +172,15 @@ curl -s localhost:8080/api/v1/users/xxx -H "Accept-Language: id" ...
 
 Nambah bahasa = tambah entri di `catalog`. Nambah pesan = tambah key baru.
 
+## Realtime (WebSocket)
+
+Kerangka pub/sub general di `internal/realtime`: satu `Hub` (broadcast ke semua client, register/unregister, drop client lambat). Endpoint:
+
+- `GET /ws` — koneksi WebSocket (client subscribe).
+- `POST /api/v1/broadcast` (admin) — push pesan ke semua client `{ "message": "..." }` → server→clients.
+
+Ini sengaja generik — tinggal extend jadi rooms/topic/auth-per-koneksi sesuai fitur (chat, notif live, dsb).
+
 ## Email (SMTP)
 
 `mailer.Mailer` pakai SMTP standar (net/smtp, zero-dep). Default nunjuk ke **Mailpit** (`docker compose up mailpit`) — email nyangkut di UI `http://localhost:8025`, ga keluar ke inbox beneran, **gratis** buat dev. Register ngirim welcome email (best-effort, ga nge-block).

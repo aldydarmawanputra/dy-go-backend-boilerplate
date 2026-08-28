@@ -13,12 +13,14 @@ import (
 	filemod "go-backend-boilerplate/internal/modules/file"
 	rolemod "go-backend-boilerplate/internal/modules/role"
 	usermod "go-backend-boilerplate/internal/modules/user"
+	"go-backend-boilerplate/internal/realtime"
+	"go-backend-boilerplate/internal/shared/apperror"
 	"go-backend-boilerplate/internal/shared/jwtutil"
 	"go-backend-boilerplate/internal/shared/response"
 	"go-backend-boilerplate/internal/storage"
 )
 
-func registerRoutes(app *fiber.App, cfg *config.Config, db *gorm.DB, rdb *redis.Client, store storage.Storage, jwtMgr *jwtutil.Manager) {
+func registerRoutes(app *fiber.App, cfg *config.Config, db *gorm.DB, rdb *redis.Client, store storage.Storage, hub *realtime.Hub, jwtMgr *jwtutil.Manager) {
 	roleRepo := rolemod.NewRepository(db)
 
 	userRepo := usermod.NewRepository(db)
@@ -39,7 +41,21 @@ func registerRoutes(app *fiber.App, cfg *config.Config, db *gorm.DB, rdb *redis.
 	app.Get("/documentation/en", docsHandler.English)
 	app.Get("/documentation/id", docsHandler.Indonesian)
 
+	app.Use("/ws", realtime.Upgrade)
+	app.Get("/ws", hub.Handler())
+
 	v1 := app.Group("/api/v1")
+
+	v1.Post("/broadcast", middleware.Auth(jwtMgr), middleware.RequireRole(rolemod.Admin), func(c *fiber.Ctx) error {
+		var body struct {
+			Message string `json:"message"`
+		}
+		if err := c.BodyParser(&body); err != nil {
+			return response.Error(c, apperror.BadRequest("invalid request body"))
+		}
+		hub.Broadcast([]byte(body.Message))
+		return response.OK(c, fiber.Map{"clients": hub.Count()})
+	})
 
 	auth := v1.Group("/auth", middleware.RateLimit(cfg.AuthRateLimitMax, cfg.RateLimitWindowSec))
 	auth.Post("/register", authHandler.Register)

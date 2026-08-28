@@ -40,7 +40,7 @@ func (s *service) Login(ctx context.Context, req LoginRequest) (string, error) {
 	if u == nil {
 		return "", apperror.Unauthorized("invalid email or password")
 	}
-	if err := hash.Compare(u.PasswordHash, req.Password); err != nil {
+	if err := hash.Compare(u.PasswordHash, req.Password.Reveal()); err != nil {
 		return "", apperror.Unauthorized("invalid email or password")
 	}
 	token, err := s.jwt.Generate(u.ID)

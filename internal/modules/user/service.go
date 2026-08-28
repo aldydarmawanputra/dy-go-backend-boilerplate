@@ -33,7 +33,7 @@ func (s *service) Create(ctx context.Context, req CreateRequest) (*User, error) 
 		return nil, apperror.Conflict("email already registered")
 	}
 
-	hashed, err := hash.Password(req.Password)
+	hashed, err := hash.Password(req.Password.Reveal())
 	if err != nil {
 		return nil, apperror.Internal("failed to hash password")
 	}

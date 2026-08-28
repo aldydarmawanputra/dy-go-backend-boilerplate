@@ -1,6 +1,10 @@
 package user
 
-import "time"
+import (
+	"time"
+
+	"go-backend-boilerplate/internal/shared/redact"
+)
 
 type DetailInput struct {
 	Phone     string `json:"phone" validate:"omitempty,max=30"`
@@ -14,7 +18,7 @@ type DetailInput struct {
 type CreateRequest struct {
 	Email    string       `json:"email" validate:"required,email"`
 	Name     string       `json:"name" validate:"required,min=2,max=100"`
-	Password string       `json:"password" validate:"required,min=6,max=72"`
+	Password redact.Secret `json:"password" validate:"required,min=6,max=72"`
 	Detail   *DetailInput `json:"detail" validate:"omitempty"`
 }
 

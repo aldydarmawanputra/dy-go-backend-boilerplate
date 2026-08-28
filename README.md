@@ -21,6 +21,7 @@ internal/
     apperror/            #   error domain -> HTTP status + code
     response/            #   envelope JSON standar {success,data,error,meta}
     validator/           #   wrapper go-playground/validator
+    redact/              #   tipe Secret (auto [REDACTED] di JSON/log) + mask helper
     hash/                #   bcrypt hash & compare
     jwtutil/             #   generate & parse JWT
   modules/
@@ -168,3 +169,12 @@ make test
 - Skema DB dikelola **dbmate** (source of truth). `AUTO_MIGRATE=true` hanya kenyamanan dev; default `false`.
 - Redis bersifat opsional saat boot: kalau ga reachable, app tetap jalan (health check nandain `redis: down`).
 - Ganti `JWT_SECRET` di production. Kalau `CORS_ALLOW_CREDENTIALS=true`, `CORS_ALLOW_ORIGINS` tidak boleh `*`.
+
+### Keamanan field sensitif
+
+- Password disimpan sebagai **bcrypt hash** (`internal/shared/hash`), tidak pernah plaintext.
+- `PasswordHash` di-tag `json:"-"` → tidak pernah muncul di response.
+- Field password di DTO pakai tipe `redact.Secret` → otomatis jadi `[REDACTED]` kalau ke-marshal JSON atau ke-log; nilai asli cuma dibuka via `.Reveal()` saat hashing.
+- GORM SQL log pakai `ParameterizedQueries: true` → nilai argumen (mis. `password_hash`, email) tidak di-expand di log, cuma muncul `$1, $2`.
+- Request logger (Fiber) tidak mencatat body, jadi password di body tidak masuk access log.
+- Buat mask nilai saat logging manual: `redact.String(x)`, `redact.Email(x)`, `redact.Tail(x, n)`.

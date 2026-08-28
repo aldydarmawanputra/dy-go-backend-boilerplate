@@ -11,7 +11,7 @@ type Repository interface {
 	Create(ctx context.Context, u *User) error
 	FindByID(ctx context.Context, id string) (*User, error)
 	FindByEmail(ctx context.Context, email string) (*User, error)
-	Search(ctx context.Context, keyword string, limit, offset int) ([]User, error)
+	Search(ctx context.Context, keyword string, limit, offset int) ([]User, int64, error)
 	Save(ctx context.Context, u *User) error
 	Delete(ctx context.Context, id string) error
 }
@@ -52,7 +52,7 @@ func (r *repository) FindByEmail(ctx context.Context, email string) (*User, erro
 	return &u, nil
 }
 
-func (r *repository) Search(ctx context.Context, keyword string, limit, offset int) ([]User, error) {
+func (r *repository) Search(ctx context.Context, keyword string, limit, offset int) ([]User, int64, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
@@ -60,20 +60,28 @@ func (r *repository) Search(ctx context.Context, keyword string, limit, offset i
 		offset = 0
 	}
 
-	// Placeholders ($1..$3) keep this raw query safe from SQL injection.
+	// Placeholders ($1..$3) keep these raw queries safe from SQL injection.
+	const filter = `($1 = '' OR email ILIKE '%' || $1 || '%' OR name ILIKE '%' || $1 || '%')`
+
+	var total int64
+	if err := r.db.WithContext(ctx).
+		Raw(`SELECT count(*) FROM users WHERE `+filter, keyword).
+		Scan(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
 	const q = `
 		SELECT id, email, password_hash, name, created_at, updated_at
 		FROM users
-		WHERE ($1 = '' OR email ILIKE '%' || $1 || '%' OR name ILIKE '%' || $1 || '%')
+		WHERE ` + filter + `
 		ORDER BY created_at DESC
 		LIMIT $2 OFFSET $3
 	`
-
 	var users []User
 	if err := r.db.WithContext(ctx).Raw(q, keyword, limit, offset).Scan(&users).Error; err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return users, nil
+	return users, total, nil
 }
 
 func (r *repository) Save(ctx context.Context, u *User) error {

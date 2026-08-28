@@ -1,11 +1,10 @@
 package user
 
 import (
-	"strconv"
-
 	"github.com/gofiber/fiber/v2"
 
 	"go-backend-boilerplate/internal/shared/apperror"
+	"go-backend-boilerplate/internal/shared/pagination"
 	"go-backend-boilerplate/internal/shared/response"
 	"go-backend-boilerplate/internal/shared/validator"
 )
@@ -32,18 +31,13 @@ func (h *Handler) Me(c *fiber.Ctx) error {
 
 func (h *Handler) List(c *fiber.Ctx) error {
 	keyword := c.Query("q", "")
-	limit, _ := strconv.Atoi(c.Query("limit", "20"))
-	offset, _ := strconv.Atoi(c.Query("offset", "0"))
+	p := pagination.Parse(c.Query("limit"), c.Query("offset"))
 
-	users, err := h.svc.Search(c.Context(), keyword, limit, offset)
+	users, total, err := h.svc.Search(c.Context(), keyword, p.Limit, p.Offset)
 	if err != nil {
 		return response.Error(c, err)
 	}
-	return response.WithMeta(c, ToResponseList(users), fiber.Map{
-		"limit":  limit,
-		"offset": offset,
-		"count":  len(users),
-	})
+	return response.WithMeta(c, ToResponseList(users), pagination.NewMeta(p, len(users), total))
 }
 
 func (h *Handler) Create(c *fiber.Ctx) error {

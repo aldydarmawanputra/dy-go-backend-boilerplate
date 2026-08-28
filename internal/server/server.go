@@ -1,6 +1,8 @@
 package server
 
 import (
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -16,12 +18,16 @@ func New(cfg *config.Config, db *gorm.DB, rdb *redis.Client) *fiber.App {
 	app := fiber.New(fiber.Config{
 		AppName:      "go-backend-boilerplate",
 		ErrorHandler: errorHandler,
+		ReadTimeout:  time.Duration(cfg.ReadTimeoutSec) * time.Second,
+		WriteTimeout: time.Duration(cfg.WriteTimeoutSec) * time.Second,
+		IdleTimeout:  time.Duration(cfg.IdleTimeoutSec) * time.Second,
+		BodyLimit:    cfg.BodyLimitBytes,
 	})
 
 	middleware.Setup(app, cfg)
 
 	jwtMgr := jwtutil.New(cfg.JWTSecret, cfg.JWTIssuer, cfg.JWTAudience, cfg.JWTExpireHours)
-	registerRoutes(app, db, rdb, jwtMgr)
+	registerRoutes(app, cfg, db, rdb, jwtMgr)
 
 	return app
 }

@@ -8,6 +8,7 @@ import (
 	"go-backend-boilerplate/internal/shared/apperror"
 	"go-backend-boilerplate/internal/shared/hash"
 	"go-backend-boilerplate/internal/shared/jwtutil"
+	"go-backend-boilerplate/internal/shared/sanitize"
 )
 
 type Service interface {
@@ -35,11 +36,12 @@ func (s *service) Register(ctx context.Context, req RegisterRequest) (*user.User
 }
 
 func (s *service) Login(ctx context.Context, req LoginRequest) (string, error) {
-	u, err := s.repo.FindByEmail(ctx, req.Email)
+	u, err := s.repo.FindByEmail(ctx, sanitize.Email(req.Email))
 	if err != nil {
 		return "", err
 	}
 	if u == nil {
+		hash.DummyCompare(req.Password.Reveal())
 		return "", apperror.Unauthorized("invalid email or password")
 	}
 	if err := hash.Compare(u.PasswordHash, req.Password.Reveal()); err != nil {

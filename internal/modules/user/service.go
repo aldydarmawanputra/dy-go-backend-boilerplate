@@ -6,6 +6,7 @@ import (
 	"go-backend-boilerplate/internal/modules/role"
 	"go-backend-boilerplate/internal/shared/apperror"
 	"go-backend-boilerplate/internal/shared/hash"
+	"go-backend-boilerplate/internal/shared/sanitize"
 )
 
 type Service interface {
@@ -27,6 +28,17 @@ func NewService(repo Repository, roles role.Repository) Service {
 }
 
 func (s *service) Create(ctx context.Context, req CreateRequest) (*User, error) {
+	req.Email = sanitize.Email(req.Email)
+	req.Name = sanitize.String(req.Name)
+	if req.Detail != nil {
+		req.Detail.Phone = sanitize.String(req.Detail.Phone)
+		req.Detail.Address = sanitize.String(req.Detail.Address)
+		req.Detail.City = sanitize.String(req.Detail.City)
+		req.Detail.Country = sanitize.String(req.Detail.Country)
+		req.Detail.Bio = sanitize.String(req.Detail.Bio)
+		req.Detail.AvatarURL = sanitize.String(req.Detail.AvatarURL)
+	}
+
 	existing, err := s.repo.FindByEmail(ctx, req.Email)
 	if err != nil {
 		return nil, err

@@ -37,6 +37,15 @@ type Config struct {
 	CORSAllowHeaders     string
 	CORSAllowCredentials bool
 
+	RateLimitMax       int
+	RateLimitWindowSec int
+	AuthRateLimitMax   int
+
+	ReadTimeoutSec  int
+	WriteTimeoutSec int
+	IdleTimeoutSec  int
+	BodyLimitBytes  int
+
 	AutoMigrate bool
 }
 
@@ -71,6 +80,15 @@ func Load() *Config {
 		CORSAllowMethods:     getEnv("CORS_ALLOW_METHODS", "GET,POST,PUT,PATCH,DELETE,OPTIONS"),
 		CORSAllowHeaders:     getEnv("CORS_ALLOW_HEADERS", "Origin,Content-Type,Accept,Authorization"),
 		CORSAllowCredentials: getEnvBool("CORS_ALLOW_CREDENTIALS", false),
+
+		RateLimitMax:       getEnvInt("RATE_LIMIT_MAX", 100),
+		RateLimitWindowSec: getEnvInt("RATE_LIMIT_WINDOW_SEC", 60),
+		AuthRateLimitMax:   getEnvInt("AUTH_RATE_LIMIT_MAX", 10),
+
+		ReadTimeoutSec:  getEnvInt("READ_TIMEOUT_SEC", 10),
+		WriteTimeoutSec: getEnvInt("WRITE_TIMEOUT_SEC", 15),
+		IdleTimeoutSec:  getEnvInt("IDLE_TIMEOUT_SEC", 60),
+		BodyLimitBytes:  getEnvInt("BODY_LIMIT_BYTES", 1048576),
 
 		AutoMigrate: getEnvBool("AUTO_MIGRATE", false),
 	}

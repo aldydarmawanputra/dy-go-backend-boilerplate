@@ -5,6 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
+	"go-backend-boilerplate/internal/modules/role"
 	"go-backend-boilerplate/internal/shared/apperror"
 	"go-backend-boilerplate/internal/shared/jwtutil"
 	"go-backend-boilerplate/internal/shared/response"
@@ -44,5 +45,23 @@ func RequireRole(roles ...string) fiber.Handler {
 			}
 		}
 		return response.Error(c, apperror.Forbidden("insufficient role"))
+	}
+}
+
+// RequireSelfOrAdmin allows admins through, otherwise only the owner whose id
+// matches the route param. Guards against IDOR on per-resource endpoints.
+func RequireSelfOrAdmin(param string) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		have, _ := c.Locals("roles").([]string)
+		for _, h := range have {
+			if h == role.Admin {
+				return c.Next()
+			}
+		}
+		userID, _ := c.Locals("userID").(string)
+		if userID != "" && userID == c.Params(param) {
+			return c.Next()
+		}
+		return response.Error(c, apperror.Forbidden("not allowed to access this resource"))
 	}
 }

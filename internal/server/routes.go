@@ -5,6 +5,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
+	"go-backend-boilerplate/internal/config"
 	"go-backend-boilerplate/internal/middleware"
 	authmod "go-backend-boilerplate/internal/modules/auth"
 	docsmod "go-backend-boilerplate/internal/modules/docs"
@@ -14,7 +15,7 @@ import (
 	"go-backend-boilerplate/internal/shared/response"
 )
 
-func registerRoutes(app *fiber.App, db *gorm.DB, rdb *redis.Client, jwtMgr *jwtutil.Manager) {
+func registerRoutes(app *fiber.App, cfg *config.Config, db *gorm.DB, rdb *redis.Client, jwtMgr *jwtutil.Manager) {
 	roleRepo := rolemod.NewRepository(db)
 
 	userRepo := usermod.NewRepository(db)
@@ -35,7 +36,7 @@ func registerRoutes(app *fiber.App, db *gorm.DB, rdb *redis.Client, jwtMgr *jwtu
 
 	v1 := app.Group("/api/v1")
 
-	auth := v1.Group("/auth")
+	auth := v1.Group("/auth", middleware.RateLimit(cfg.AuthRateLimitMax, cfg.RateLimitWindowSec))
 	auth.Post("/register", authHandler.Register)
 	auth.Post("/login", authHandler.Login)
 
@@ -43,9 +44,9 @@ func registerRoutes(app *fiber.App, db *gorm.DB, rdb *redis.Client, jwtMgr *jwtu
 	users.Get("/", userHandler.List)
 	users.Post("/", middleware.RequireRole(rolemod.Admin), userHandler.Create)
 	users.Get("/me", userHandler.Me)
-	users.Get("/:id", userHandler.GetByID)
-	users.Put("/:id", userHandler.Replace)
-	users.Patch("/:id", userHandler.Patch)
+	users.Get("/:id", middleware.RequireSelfOrAdmin("id"), userHandler.GetByID)
+	users.Put("/:id", middleware.RequireSelfOrAdmin("id"), userHandler.Replace)
+	users.Patch("/:id", middleware.RequireSelfOrAdmin("id"), userHandler.Patch)
 	users.Delete("/:id", middleware.RequireRole(rolemod.Admin), userHandler.Delete)
 }
 

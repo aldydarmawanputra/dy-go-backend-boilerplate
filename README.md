@@ -194,3 +194,13 @@ make test
 - GORM SQL log pakai `ParameterizedQueries: true` → nilai argumen (mis. `password_hash`, email) tidak di-expand di log, cuma muncul `$1, $2`.
 - Request logger (Fiber) tidak mencatat body, jadi password di body tidak masuk access log.
 - Buat mask nilai saat logging manual: `redact.String(x)`, `redact.Email(x)`, `redact.Tail(x, n)`.
+
+### Proteksi lain
+
+- **Rate limit**: global (`RATE_LIMIT_MAX`/`RATE_LIMIT_WINDOW_SEC`) + limiter ketat khusus `/auth` (`AUTH_RATE_LIMIT_MAX`) → tahan brute-force. Balikan `429 TOO_MANY_REQUESTS`.
+- **Timeout & body limit**: `READ/WRITE/IDLE_TIMEOUT_SEC` + `BODY_LIMIT_BYTES` di `fiber.Config` → tahan slow-loris & payload gede.
+- **Security headers**: middleware `helmet`.
+- **IDOR**: `RequireSelfOrAdmin("id")` di `GET/PUT/PATCH /users/:id` → non-admin cuma bisa akses dirinya sendiri.
+- **Timing/user-enumeration**: login melakukan `bcrypt` dummy-compare saat email tak ditemukan → waktu respons seragam.
+- **SQL injection**: semua query pakai placeholder parameter (GORM builder & `Raw($1,$2)`), tak ada string-concat input.
+- **Sanitasi input (zero-trust)**: `sanitize.String` (trim + buang control char) & `sanitize.Email` (lowercase+trim) di service sebelum simpan.

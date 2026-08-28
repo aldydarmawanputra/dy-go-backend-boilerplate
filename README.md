@@ -145,7 +145,13 @@ curl -s -X DELETE localhost:8080/api/v1/users/<id> -H "Authorization: Bearer $TO
 - `users` — id, email, password_hash, name, timestamps.
 - `user_details` — one-to-one ke `users` (FK `ON DELETE CASCADE`): phone, address, city, country, bio, avatar_url.
 
-Semua ID tabel entity pakai **UUID (google/uuid)**, di-generate otomatis lewat GORM hook `BeforeCreate` di `internal/shared/model`. Bikin model baru cukup embed `model.Base` — ID + timestamps langsung ke-handle.
+Semua ID tabel entity pakai **UUID (google/uuid)**, di-generate otomatis lewat GORM hook `BeforeCreate` di `internal/shared/model`. Bikin model baru cukup embed `model.Base` — ID, timestamps, **soft delete**, dan **audit** langsung ke-handle.
+
+### Soft delete & audit
+
+`model.Base` juga bawa:
+- `DeletedAt` (`gorm.DeletedAt`) → **soft delete**: `Delete` cuma nge-set `deleted_at`, query builder GORM otomatis nge-skip yang terhapus. (Raw query wajib nambah `AND deleted_at IS NULL` sendiri — lihat `user/repository.go`.)
+- `CreatedBy` / `UpdatedBy` (uuid) → **audit trail**, diisi otomatis dari actor di context. Handler bungkus context pakai `audit.WithActor(c.Context(), userID)` (lihat `actorCtx` di `user/handler.go`); hook `BeforeCreate`/`BeforeUpdate` yang ngisi kolomnya.
 
 ### Roles & authorization
 

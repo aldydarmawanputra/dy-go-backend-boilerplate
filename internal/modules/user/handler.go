@@ -1,13 +1,25 @@
 package user
 
 import (
+	"context"
+
 	"github.com/gofiber/fiber/v2"
 
 	"go-backend-boilerplate/internal/shared/apperror"
+	"go-backend-boilerplate/internal/shared/audit"
 	"go-backend-boilerplate/internal/shared/pagination"
 	"go-backend-boilerplate/internal/shared/response"
 	"go-backend-boilerplate/internal/shared/validator"
 )
+
+// actorCtx carries the authenticated user id so base-model hooks can record
+// created_by / updated_by.
+func actorCtx(c *fiber.Ctx) context.Context {
+	if uid, _ := c.Locals("userID").(string); uid != "" {
+		return audit.WithActor(c.Context(), uid)
+	}
+	return c.Context()
+}
 
 type Handler struct {
 	svc Service
@@ -59,7 +71,7 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 	if err := validator.Struct(req); err != nil {
 		return response.Error(c, err)
 	}
-	u, err := h.svc.Create(c.Context(), req)
+	u, err := h.svc.Create(actorCtx(c), req)
 	if err != nil {
 		return response.Error(c, err)
 	}
@@ -82,7 +94,7 @@ func (h *Handler) Replace(c *fiber.Ctx) error {
 	if err := validator.Struct(req); err != nil {
 		return response.Error(c, err)
 	}
-	u, err := h.svc.Replace(c.Context(), c.Params("id"), req)
+	u, err := h.svc.Replace(actorCtx(c), c.Params("id"), req)
 	if err != nil {
 		return response.Error(c, err)
 	}
@@ -97,7 +109,7 @@ func (h *Handler) Patch(c *fiber.Ctx) error {
 	if err := validator.Struct(req); err != nil {
 		return response.Error(c, err)
 	}
-	u, err := h.svc.Patch(c.Context(), c.Params("id"), req)
+	u, err := h.svc.Patch(actorCtx(c), c.Params("id"), req)
 	if err != nil {
 		return response.Error(c, err)
 	}
@@ -105,7 +117,7 @@ func (h *Handler) Patch(c *fiber.Ctx) error {
 }
 
 func (h *Handler) Delete(c *fiber.Ctx) error {
-	if err := h.svc.Delete(c.Context(), c.Params("id")); err != nil {
+	if err := h.svc.Delete(actorCtx(c), c.Params("id")); err != nil {
 		return response.Error(c, err)
 	}
 	return response.NoContent(c)

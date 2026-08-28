@@ -62,7 +62,9 @@ func (r *repository) Search(ctx context.Context, keyword string, limit, offset i
 	}
 
 	// Placeholders ($1..$3) keep these raw queries safe from SQL injection.
-	const filter = `($1 = '' OR email ILIKE '%' || $1 || '%' OR name ILIKE '%' || $1 || '%')`
+	// deleted_at IS NULL respects soft deletes (GORM's builder adds this itself,
+	// but raw SQL must include it explicitly).
+	const filter = `($1 = '' OR email ILIKE '%' || $1 || '%' OR name ILIKE '%' || $1 || '%') AND deleted_at IS NULL`
 
 	var total int64
 	if err := r.db.WithContext(ctx).
@@ -97,7 +99,7 @@ func (r *repository) FullTextSearch(ctx context.Context, query string, limit, of
 
 	var total int64
 	if err := r.db.WithContext(ctx).
-		Raw(`SELECT count(*) FROM users WHERE search_vector @@ plainto_tsquery('simple', $1)`, query).
+		Raw(`SELECT count(*) FROM users WHERE search_vector @@ plainto_tsquery('simple', $1) AND deleted_at IS NULL`, query).
 		Scan(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -105,7 +107,7 @@ func (r *repository) FullTextSearch(ctx context.Context, query string, limit, of
 	const q = `
 		SELECT id, email, password_hash, name, created_at, updated_at
 		FROM users
-		WHERE search_vector @@ plainto_tsquery('simple', $1)
+		WHERE search_vector @@ plainto_tsquery('simple', $1) AND deleted_at IS NULL
 		ORDER BY ts_rank(search_vector, plainto_tsquery('simple', $1)) DESC
 		LIMIT $2 OFFSET $3
 	`

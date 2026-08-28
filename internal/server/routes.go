@@ -10,6 +10,7 @@ import (
 	"go-backend-boilerplate/internal/config"
 	"go-backend-boilerplate/internal/mailer"
 	"go-backend-boilerplate/internal/middleware"
+	apikeymod "go-backend-boilerplate/internal/modules/apikey"
 	authmod "go-backend-boilerplate/internal/modules/auth"
 	docsmod "go-backend-boilerplate/internal/modules/docs"
 	filemod "go-backend-boilerplate/internal/modules/file"
@@ -88,6 +89,15 @@ func registerRoutes(app *fiber.App, cfg *config.Config, db *gorm.DB, rdb *redis.
 		payments.Post("/", middleware.Auth(jwtMgr), paymentHandler.Create)
 		payments.Post("/webhook", paymentHandler.Webhook)
 	}
+
+	apiKeySvc := apikeymod.NewService(apikeymod.NewRepository(db))
+	apiKeyHandler := apikeymod.NewHandler(apiKeySvc)
+	keys := v1.Group("/api-keys", middleware.Auth(jwtMgr), middleware.RequireRole(rolemod.Admin))
+	keys.Post("/", apiKeyHandler.Create)
+	// demo endpoint authenticated by API key instead of a user JWT
+	v1.Get("/whoami-apikey", middleware.APIKeyAuth(apiKeySvc), func(c *fiber.Ctx) error {
+		return response.OK(c, fiber.Map{"api_key_id": c.Locals("apiKeyID"), "name": c.Locals("apiKeyName")})
+	})
 
 	users := v1.Group("/users", middleware.Auth(jwtMgr))
 	users.Get("/", userHandler.List)

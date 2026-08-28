@@ -112,6 +112,8 @@ Config service `app` & `migrate` dibaca dari **`.env.docker`** (via `env_file`),
 | PUT    | `/api/v1/users/:id`     | ✅   | Replace (name + detail)             |
 | PATCH  | `/api/v1/users/:id`     | ✅   | Partial update                      |
 | DELETE | `/api/v1/users/:id`     | admin | Hapus user (cascade ke detail)    |
+| POST   | `/api/v1/api-keys`      | admin | Bikin API key (plaintext muncul sekali) |
+| GET    | `/api/v1/whoami-apikey` | API key | Contoh endpoint auth via `X-API-Key` |
 | POST   | `/api/v1/files`         | ✅   | Upload file (multipart `file`) → `{key,url}` |
 
 Envelope response konsisten:

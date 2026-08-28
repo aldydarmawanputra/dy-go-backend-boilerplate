@@ -54,6 +54,7 @@ type Response struct {
 	ID        string          `json:"id"`
 	Email     string          `json:"email"`
 	Name      string          `json:"name"`
+	Roles     []string        `json:"roles,omitempty"`
 	CreatedAt time.Time       `json:"created_at"`
 	UpdatedAt time.Time       `json:"updated_at"`
 	Detail    *DetailResponse `json:"detail,omitempty"`
@@ -64,6 +65,7 @@ func ToResponse(u *User) Response {
 		ID:        u.ID,
 		Email:     u.Email,
 		Name:      u.Name,
+		Roles:     u.Roles,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 	}

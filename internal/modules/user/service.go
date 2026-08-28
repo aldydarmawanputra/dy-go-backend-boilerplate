@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 
+	"go-backend-boilerplate/internal/modules/role"
 	"go-backend-boilerplate/internal/shared/apperror"
 	"go-backend-boilerplate/internal/shared/hash"
 )
@@ -17,11 +18,12 @@ type Service interface {
 }
 
 type service struct {
-	repo Repository
+	repo  Repository
+	roles role.Repository
 }
 
-func NewService(repo Repository) Service {
-	return &service{repo: repo}
+func NewService(repo Repository, roles role.Repository) Service {
+	return &service{repo: repo, roles: roles}
 }
 
 func (s *service) Create(ctx context.Context, req CreateRequest) (*User, error) {
@@ -57,6 +59,10 @@ func (s *service) Create(ctx context.Context, req CreateRequest) (*User, error) 
 	if err := s.repo.Create(ctx, u); err != nil {
 		return nil, err
 	}
+	if err := s.roles.AssignByName(ctx, u.ID, role.Default); err != nil {
+		return nil, err
+	}
+	u.Roles = []string{role.Default}
 	return u, nil
 }
 
@@ -68,6 +74,11 @@ func (s *service) GetByID(ctx context.Context, id string) (*User, error) {
 	if u == nil {
 		return nil, apperror.NotFound("user not found")
 	}
+	names, err := s.roles.NamesForUser(ctx, u.ID)
+	if err != nil {
+		return nil, err
+	}
+	u.Roles = names
 	return u, nil
 }
 

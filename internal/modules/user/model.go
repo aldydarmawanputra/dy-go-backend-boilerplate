@@ -8,6 +8,7 @@ type User struct {
 	PasswordHash string      `gorm:"not null" json:"-"`
 	Name         string      `gorm:"not null" json:"name"`
 	Detail       *UserDetail `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"detail,omitempty"`
+	Roles        []string    `gorm:"-" json:"roles,omitempty"`
 }
 
 func (User) TableName() string { return "users" }

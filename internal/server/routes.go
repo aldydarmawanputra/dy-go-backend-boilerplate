@@ -8,17 +8,20 @@ import (
 	"go-backend-boilerplate/internal/middleware"
 	authmod "go-backend-boilerplate/internal/modules/auth"
 	docsmod "go-backend-boilerplate/internal/modules/docs"
+	rolemod "go-backend-boilerplate/internal/modules/role"
 	usermod "go-backend-boilerplate/internal/modules/user"
 	"go-backend-boilerplate/internal/shared/jwtutil"
 	"go-backend-boilerplate/internal/shared/response"
 )
 
 func registerRoutes(app *fiber.App, db *gorm.DB, rdb *redis.Client, jwtMgr *jwtutil.Manager) {
+	roleRepo := rolemod.NewRepository(db)
+
 	userRepo := usermod.NewRepository(db)
-	userSvc := usermod.NewService(userRepo)
+	userSvc := usermod.NewService(userRepo, roleRepo)
 	userHandler := usermod.NewHandler(userSvc)
 
-	authSvc := authmod.NewService(userSvc, userRepo, jwtMgr)
+	authSvc := authmod.NewService(userSvc, userRepo, roleRepo, jwtMgr)
 	authHandler := authmod.NewHandler(authSvc)
 
 	app.Get("/health", healthHandler(db, rdb))
@@ -38,12 +41,12 @@ func registerRoutes(app *fiber.App, db *gorm.DB, rdb *redis.Client, jwtMgr *jwtu
 
 	users := v1.Group("/users", middleware.Auth(jwtMgr))
 	users.Get("/", userHandler.List)
-	users.Post("/", userHandler.Create)
+	users.Post("/", middleware.RequireRole(rolemod.Admin), userHandler.Create)
 	users.Get("/me", userHandler.Me)
 	users.Get("/:id", userHandler.GetByID)
 	users.Put("/:id", userHandler.Replace)
 	users.Patch("/:id", userHandler.Patch)
-	users.Delete("/:id", userHandler.Delete)
+	users.Delete("/:id", middleware.RequireRole(rolemod.Admin), userHandler.Delete)
 }
 
 func healthHandler(db *gorm.DB, rdb *redis.Client) fiber.Handler {

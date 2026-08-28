@@ -22,12 +22,27 @@ func Auth(jwt *jwtutil.Manager) fiber.Handler {
 			return response.Error(c, apperror.Unauthorized("invalid authorization header"))
 		}
 
-		userID, err := jwt.Parse(strings.TrimSpace(parts[1]))
+		claims, err := jwt.Parse(strings.TrimSpace(parts[1]))
 		if err != nil {
 			return response.Error(c, apperror.Unauthorized("invalid or expired token"))
 		}
 
-		c.Locals("userID", userID)
+		c.Locals("userID", claims.Subject)
+		c.Locals("roles", claims.Roles)
 		return c.Next()
+	}
+}
+
+func RequireRole(roles ...string) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		have, _ := c.Locals("roles").([]string)
+		for _, need := range roles {
+			for _, h := range have {
+				if h == need {
+					return c.Next()
+				}
+			}
+		}
+		return response.Error(c, apperror.Forbidden("insufficient role"))
 	}
 }

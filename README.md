@@ -97,12 +97,12 @@ Config service `app` & `migrate` dibaca dari **`.env.docker`** (via `env_file`),
 | POST   | `/api/v1/auth/register` | -    | Daftar user baru                    |
 | POST   | `/api/v1/auth/login`    | -    | Login -> dapat JWT                  |
 | GET    | `/api/v1/users`         | ✅   | List/search user (raw query)        |
-| POST   | `/api/v1/users`         | ✅   | Buat user (+ detail opsional)       |
+| POST   | `/api/v1/users`         | admin | Buat user (+ detail opsional)     |
 | GET    | `/api/v1/users/me`      | ✅   | Profil user yang login              |
 | GET    | `/api/v1/users/:id`     | ✅   | Ambil satu user + detail            |
 | PUT    | `/api/v1/users/:id`     | ✅   | Replace (name + detail)             |
 | PATCH  | `/api/v1/users/:id`     | ✅   | Partial update                      |
-| DELETE | `/api/v1/users/:id`     | ✅   | Hapus user (cascade ke detail)      |
+| DELETE | `/api/v1/users/:id`     | admin | Hapus user (cascade ke detail)    |
 
 Envelope response konsisten:
 
@@ -139,6 +139,20 @@ curl -s -X DELETE localhost:8080/api/v1/users/<id> -H "Authorization: Bearer $TO
 - `user_details` — one-to-one ke `users` (FK `ON DELETE CASCADE`): phone, address, city, country, bio, avatar_url.
 
 Semua ID tabel entity pakai **UUID (google/uuid)**, di-generate otomatis lewat GORM hook `BeforeCreate` di `internal/shared/model`. Bikin model baru cukup embed `model.Base` — ID + timestamps langsung ke-handle.
+
+### Roles & authorization
+
+- `roles` — id integer + name, di-seed `1=admin`, `2=user` (migrasi).
+- `user_roles` — join many-to-many `users`↔`roles` (FK `ON DELETE CASCADE`). Satu user bisa punya >1 role.
+- User baru (register) otomatis dapat role `user`.
+- JWT membawa claim `roles` (array). Login memuat role user ke token.
+- Middleware `middleware.RequireRole("admin")` menjaga endpoint (fail-closed: tanpa role yang cocok → `403`). Contoh: `POST` & `DELETE /users` khusus admin.
+- Jadikan seorang user admin (sementara, via SQL):
+  ```sql
+  INSERT INTO user_roles (user_id, role_id)
+  SELECT '<user-uuid>', id FROM roles WHERE name = 'admin'
+  ON CONFLICT DO NOTHING;
+  ```
 
 ## Migrasi (dbmate)
 

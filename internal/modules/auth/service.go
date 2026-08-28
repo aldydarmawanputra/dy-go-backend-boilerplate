@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 
+	"go-backend-boilerplate/internal/modules/role"
 	"go-backend-boilerplate/internal/modules/user"
 	"go-backend-boilerplate/internal/shared/apperror"
 	"go-backend-boilerplate/internal/shared/hash"
@@ -17,11 +18,12 @@ type Service interface {
 type service struct {
 	users user.Service
 	repo  user.Repository
+	roles role.Repository
 	jwt   *jwtutil.Manager
 }
 
-func NewService(users user.Service, repo user.Repository, jwt *jwtutil.Manager) Service {
-	return &service{users: users, repo: repo, jwt: jwt}
+func NewService(users user.Service, repo user.Repository, roles role.Repository, jwt *jwtutil.Manager) Service {
+	return &service{users: users, repo: repo, roles: roles, jwt: jwt}
 }
 
 func (s *service) Register(ctx context.Context, req RegisterRequest) (*user.User, error) {
@@ -43,7 +45,12 @@ func (s *service) Login(ctx context.Context, req LoginRequest) (string, error) {
 	if err := hash.Compare(u.PasswordHash, req.Password.Reveal()); err != nil {
 		return "", apperror.Unauthorized("invalid email or password")
 	}
-	token, err := s.jwt.Generate(u.ID)
+
+	roles, err := s.roles.NamesForUser(ctx, u.ID)
+	if err != nil {
+		return "", err
+	}
+	token, err := s.jwt.Generate(u.ID, roles)
 	if err != nil {
 		return "", apperror.Internal("failed to issue token")
 	}

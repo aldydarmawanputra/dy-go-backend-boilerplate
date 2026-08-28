@@ -13,25 +13,28 @@ func newTestManager() *Manager {
 func TestGenerateAndParse(t *testing.T) {
 	m := newTestManager()
 
-	token, err := m.Generate("user-123")
+	token, err := m.Generate("user-123", []string{"admin", "user"})
 	if err != nil {
 		t.Fatalf("Generate: %v", err)
 	}
 
-	userID, err := m.Parse(token)
+	claims, err := m.Parse(token)
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
 	}
-	if userID != "user-123" {
-		t.Fatalf("subject = %q, want user-123", userID)
+	if claims.Subject != "user-123" {
+		t.Fatalf("subject = %q, want user-123", claims.Subject)
+	}
+	if len(claims.Roles) != 2 || claims.Roles[0] != "admin" {
+		t.Fatalf("roles = %v, want [admin user]", claims.Roles)
 	}
 }
 
 func TestGeneratedClaimsArePresent(t *testing.T) {
 	m := newTestManager()
-	token, _ := m.Generate("user-123")
+	token, _ := m.Generate("user-123", []string{"user"})
 
-	claims := &jwt.RegisteredClaims{}
+	claims := &Claims{}
 	if _, _, err := jwt.NewParser().ParseUnverified(token, claims); err != nil {
 		t.Fatalf("parse unverified: %v", err)
 	}
@@ -50,14 +53,14 @@ func TestGeneratedClaimsArePresent(t *testing.T) {
 }
 
 func TestParseRejectsWrongSecret(t *testing.T) {
-	token, _ := New("secret-a", "iss", "aud", 1).Generate("user-123")
+	token, _ := New("secret-a", "iss", "aud", 1).Generate("user-123", nil)
 	if _, err := New("secret-b", "iss", "aud", 1).Parse(token); err == nil {
 		t.Fatal("expected error for wrong secret")
 	}
 }
 
 func TestParseRejectsWrongIssuerOrAudience(t *testing.T) {
-	token, _ := New("s", "iss-a", "aud-a", 1).Generate("user-123")
+	token, _ := New("s", "iss-a", "aud-a", 1).Generate("user-123", nil)
 
 	if _, err := New("s", "iss-b", "aud-a", 1).Parse(token); err == nil {
 		t.Fatal("expected error for wrong issuer")

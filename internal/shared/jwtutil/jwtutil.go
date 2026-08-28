@@ -8,6 +8,11 @@ import (
 	"github.com/google/uuid"
 )
 
+type Claims struct {
+	Roles []string `json:"roles,omitempty"`
+	jwt.RegisteredClaims
+}
+
 type Manager struct {
 	secret   []byte
 	issuer   string
@@ -27,22 +32,25 @@ func New(secret, issuer, audience string, expireHours int) *Manager {
 	}
 }
 
-func (m *Manager) Generate(userID string) (string, error) {
+func (m *Manager) Generate(userID string, roles []string) (string, error) {
 	now := time.Now()
-	claims := jwt.RegisteredClaims{
-		Issuer:    m.issuer,
-		Subject:   userID,
-		Audience:  jwt.ClaimStrings{m.audience},
-		ExpiresAt: jwt.NewNumericDate(now.Add(m.expire)),
-		NotBefore: jwt.NewNumericDate(now),
-		IssuedAt:  jwt.NewNumericDate(now),
-		ID:        uuid.NewString(),
+	claims := Claims{
+		Roles: roles,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    m.issuer,
+			Subject:   userID,
+			Audience:  jwt.ClaimStrings{m.audience},
+			ExpiresAt: jwt.NewNumericDate(now.Add(m.expire)),
+			NotBefore: jwt.NewNumericDate(now),
+			IssuedAt:  jwt.NewNumericDate(now),
+			ID:        uuid.NewString(),
+		},
 	}
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(m.secret)
 }
 
-func (m *Manager) Parse(tokenString string) (string, error) {
-	claims := &jwt.RegisteredClaims{}
+func (m *Manager) Parse(tokenString string) (*Claims, error) {
+	claims := &Claims{}
 	_, err := jwt.ParseWithClaims(tokenString, claims, func(*jwt.Token) (any, error) {
 		return m.secret, nil
 	},
@@ -52,10 +60,10 @@ func (m *Manager) Parse(tokenString string) (string, error) {
 		jwt.WithExpirationRequired(),
 	)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if claims.Subject == "" {
-		return "", errors.New("invalid token: empty subject")
+		return nil, errors.New("invalid token: empty subject")
 	}
-	return claims.Subject, nil
+	return claims, nil
 }

@@ -20,7 +20,7 @@ func New(cfg *config.Config, db *gorm.DB, rdb *redis.Client) *fiber.App {
 
 	middleware.Setup(app, cfg)
 
-	jwtMgr := jwtutil.New(cfg.JWTSecret, cfg.JWTExpireHours)
+	jwtMgr := jwtutil.New(cfg.JWTSecret, cfg.JWTIssuer, cfg.JWTAudience, cfg.JWTExpireHours)
 	registerRoutes(app, db, rdb, jwtMgr)
 
 	return app

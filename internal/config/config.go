@@ -28,6 +28,8 @@ type Config struct {
 	RedisDB       int
 
 	JWTSecret      string
+	JWTIssuer      string
+	JWTAudience    string
 	JWTExpireHours int
 
 	CORSAllowOrigins     string
@@ -61,6 +63,8 @@ func Load() *Config {
 		RedisDB:       getEnvInt("REDIS_DB", 0),
 
 		JWTSecret:      getEnv("JWT_SECRET", "change-me-in-production"),
+		JWTIssuer:      getEnv("JWT_ISSUER", "go-backend-boilerplate"),
+		JWTAudience:    getEnv("JWT_AUDIENCE", "go-backend-boilerplate"),
 		JWTExpireHours: getEnvInt("JWT_EXPIRE_HOURS", 24),
 
 		CORSAllowOrigins:     getEnv("CORS_ALLOW_ORIGINS", "*"),

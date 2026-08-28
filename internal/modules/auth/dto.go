@@ -13,7 +13,20 @@ type LoginRequest struct {
 	Password redact.Secret `json:"password" validate:"required"`
 }
 
+type RefreshRequest struct {
+	RefreshToken string `json:"refresh_token" validate:"required"`
+}
+
 type TokenResponse struct {
-	AccessToken string `json:"access_token"`
-	TokenType   string `json:"token_type"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token,omitempty"`
+	TokenType    string `json:"token_type"`
+}
+
+func toTokenResponse(t *Tokens) TokenResponse {
+	return TokenResponse{
+		AccessToken:  t.Access,
+		RefreshToken: t.Refresh,
+		TokenType:    "Bearer",
+	}
 }

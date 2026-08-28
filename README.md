@@ -98,7 +98,9 @@ Config service `app` & `migrate` dibaca dari **`.env.docker`** (via `env_file`),
 | GET    | `/documentation/en`     | -    | Dokumentasi API (English, markdown) |
 | GET    | `/documentation/id`     | -    | Dokumentasi API (Indonesia, markdown)|
 | POST   | `/api/v1/auth/register` | -    | Daftar user baru                    |
-| POST   | `/api/v1/auth/login`    | -    | Login -> dapat JWT                  |
+| POST   | `/api/v1/auth/login`    | -    | Login -> access + refresh token     |
+| POST   | `/api/v1/auth/refresh`  | -    | Tukar refresh token -> pasangan baru (rotation) |
+| POST   | `/api/v1/auth/logout`   | -    | Revoke refresh token                |
 | GET    | `/api/v1/users`         | ✅   | List/search user (raw query)        |
 | POST   | `/api/v1/users`         | admin | Buat user (+ detail opsional)     |
 | GET    | `/api/v1/users/me`      | ✅   | Profil user yang login              |

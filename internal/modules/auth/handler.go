@@ -40,9 +40,38 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 	if err := validator.Struct(req); err != nil {
 		return response.Error(c, err)
 	}
-	token, err := h.svc.Login(c.Context(), req)
+	tokens, err := h.svc.Login(c.Context(), req)
 	if err != nil {
 		return response.Error(c, err)
 	}
-	return response.OK(c, TokenResponse{AccessToken: token, TokenType: "Bearer"})
+	return response.OK(c, toTokenResponse(tokens))
+}
+
+func (h *Handler) Refresh(c *fiber.Ctx) error {
+	var req RefreshRequest
+	if err := c.BodyParser(&req); err != nil {
+		return response.Error(c, apperror.BadRequest("invalid request body"))
+	}
+	if err := validator.Struct(req); err != nil {
+		return response.Error(c, err)
+	}
+	tokens, err := h.svc.Refresh(c.Context(), req.RefreshToken)
+	if err != nil {
+		return response.Error(c, err)
+	}
+	return response.OK(c, toTokenResponse(tokens))
+}
+
+func (h *Handler) Logout(c *fiber.Ctx) error {
+	var req RefreshRequest
+	if err := c.BodyParser(&req); err != nil {
+		return response.Error(c, apperror.BadRequest("invalid request body"))
+	}
+	if err := validator.Struct(req); err != nil {
+		return response.Error(c, err)
+	}
+	if err := h.svc.Logout(c.Context(), req.RefreshToken); err != nil {
+		return response.Error(c, err)
+	}
+	return response.NoContent(c)
 }

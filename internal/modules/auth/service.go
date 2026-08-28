@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 
 	"go-backend-boilerplate/internal/modules/role"
 	"go-backend-boilerplate/internal/modules/user"
@@ -11,20 +12,28 @@ import (
 	"go-backend-boilerplate/internal/shared/sanitize"
 )
 
+type Tokens struct {
+	Access  string
+	Refresh string
+}
+
 type Service interface {
 	Register(ctx context.Context, req RegisterRequest) (*user.User, error)
-	Login(ctx context.Context, req LoginRequest) (string, error)
+	Login(ctx context.Context, req LoginRequest) (*Tokens, error)
+	Refresh(ctx context.Context, refreshToken string) (*Tokens, error)
+	Logout(ctx context.Context, refreshToken string) error
 }
 
 type service struct {
-	users user.Service
-	repo  user.Repository
-	roles role.Repository
-	jwt   *jwtutil.Manager
+	users   user.Service
+	repo    user.Repository
+	roles   role.Repository
+	jwt     *jwtutil.Manager
+	refresh *RefreshStore
 }
 
-func NewService(users user.Service, repo user.Repository, roles role.Repository, jwt *jwtutil.Manager) Service {
-	return &service{users: users, repo: repo, roles: roles, jwt: jwt}
+func NewService(users user.Service, repo user.Repository, roles role.Repository, jwt *jwtutil.Manager, refresh *RefreshStore) Service {
+	return &service{users: users, repo: repo, roles: roles, jwt: jwt, refresh: refresh}
 }
 
 func (s *service) Register(ctx context.Context, req RegisterRequest) (*user.User, error) {
@@ -35,26 +44,60 @@ func (s *service) Register(ctx context.Context, req RegisterRequest) (*user.User
 	})
 }
 
-func (s *service) Login(ctx context.Context, req LoginRequest) (string, error) {
+func (s *service) Login(ctx context.Context, req LoginRequest) (*Tokens, error) {
 	u, err := s.repo.FindByEmail(ctx, sanitize.Email(req.Email))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if u == nil {
 		hash.DummyCompare(req.Password.Reveal())
-		return "", apperror.Unauthorized("invalid email or password")
+		return nil, apperror.Unauthorized("invalid email or password")
 	}
 	if err := hash.Compare(u.PasswordHash, req.Password.Reveal()); err != nil {
-		return "", apperror.Unauthorized("invalid email or password")
+		return nil, apperror.Unauthorized("invalid email or password")
 	}
 
-	roles, err := s.roles.NamesForUser(ctx, u.ID)
-	if err != nil {
-		return "", err
+	return s.issueTokens(ctx, u.ID)
+}
+
+func (s *service) Refresh(ctx context.Context, refreshToken string) (*Tokens, error) {
+	userID, err := s.refresh.UserID(ctx, refreshToken)
+	if errors.Is(err, ErrRefreshUnavailable) {
+		return nil, apperror.New(503, "REFRESH_UNAVAILABLE", "refresh is not available")
 	}
-	token, err := s.jwt.Generate(u.ID, roles)
 	if err != nil {
-		return "", apperror.Internal("failed to issue token")
+		return nil, err
 	}
-	return token, nil
+	if userID == "" {
+		return nil, apperror.Unauthorized("invalid or expired refresh token")
+	}
+
+	// Rotation: revoke the used token before issuing a new pair.
+	_ = s.refresh.Revoke(ctx, refreshToken)
+	return s.issueTokens(ctx, userID)
+}
+
+func (s *service) Logout(ctx context.Context, refreshToken string) error {
+	err := s.refresh.Revoke(ctx, refreshToken)
+	if errors.Is(err, ErrRefreshUnavailable) {
+		return nil
+	}
+	return err
+}
+
+func (s *service) issueTokens(ctx context.Context, userID string) (*Tokens, error) {
+	roles, err := s.roles.NamesForUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	access, err := s.jwt.Generate(userID, roles)
+	if err != nil {
+		return nil, apperror.Internal("failed to issue token")
+	}
+
+	refresh, err := s.refresh.Issue(ctx, userID)
+	if err != nil && !errors.Is(err, ErrRefreshUnavailable) {
+		return nil, apperror.Internal("failed to issue refresh token")
+	}
+	return &Tokens{Access: access, Refresh: refresh}, nil
 }

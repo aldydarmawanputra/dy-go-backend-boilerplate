@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -10,6 +11,7 @@ import (
 	"go-backend-boilerplate/internal/cache"
 	"go-backend-boilerplate/internal/config"
 	"go-backend-boilerplate/internal/database"
+	"go-backend-boilerplate/internal/observability"
 	"go-backend-boilerplate/internal/server"
 	"go-backend-boilerplate/internal/shared/logging"
 )
@@ -17,6 +19,12 @@ import (
 func main() {
 	cfg := config.Load()
 	logging.Setup(cfg.AppEnv)
+
+	shutdownOTel, err := observability.Setup(context.Background(), cfg)
+	if err != nil {
+		slog.Error("otel setup", "err", err)
+		os.Exit(1)
+	}
 
 	if err := database.EnsureDatabase(cfg); err != nil {
 		slog.Error("ensure database", "err", err)
@@ -66,5 +74,8 @@ func main() {
 	if sqlDB, err := db.DB(); err == nil {
 		_ = sqlDB.Close()
 	}
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_ = shutdownOTel(shutdownCtx)
 	slog.Info("server stopped")
 }

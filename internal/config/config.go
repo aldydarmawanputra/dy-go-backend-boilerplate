@@ -46,6 +46,11 @@ type Config struct {
 	IdleTimeoutSec  int
 	BodyLimitBytes  int
 
+	OTelEnabled     bool
+	OTelServiceName string
+	OTelEndpoint    string
+	OTelInsecure    bool
+
 	AutoMigrate bool
 }
 
@@ -89,6 +94,11 @@ func Load() *Config {
 		WriteTimeoutSec: getEnvInt("WRITE_TIMEOUT_SEC", 15),
 		IdleTimeoutSec:  getEnvInt("IDLE_TIMEOUT_SEC", 60),
 		BodyLimitBytes:  getEnvInt("BODY_LIMIT_BYTES", 1048576),
+
+		OTelEnabled:     getEnvBool("OTEL_ENABLED", false),
+		OTelServiceName: getEnv("OTEL_SERVICE_NAME", "go-backend-boilerplate"),
+		OTelEndpoint:    getEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:4318"),
+		OTelInsecure:    getEnvBool("OTEL_EXPORTER_OTLP_INSECURE", true),
 
 		AutoMigrate: getEnvBool("AUTO_MIGRATE", false),
 	}

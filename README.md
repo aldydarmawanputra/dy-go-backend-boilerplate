@@ -187,6 +187,7 @@ make test
 
 - Skema DB dikelola **dbmate** (source of truth). `AUTO_MIGRATE=true` hanya kenyamanan dev; default `false`.
 - Redis bersifat opsional saat boot: kalau ga reachable, app tetap jalan (health check nandain `redis: down`).
+- **OpenTelemetry** tracing opsional: set `OTEL_ENABLED=true` + `OTEL_EXPORTER_OTLP_ENDPOINT` (mis. `localhost:4318`). Kalau `false` (default), no-op — zero overhead. Otomatis instrument request Fiber via `otelfiber`.
 - Ganti `JWT_SECRET` di production. Kalau `CORS_ALLOW_CREDENTIALS=true`, `CORS_ALLOW_ORIGINS` tidak boleh `*`.
 
 ### Keamanan field sensitif

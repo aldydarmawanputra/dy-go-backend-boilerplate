@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/gofiber/contrib/otelfiber/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/helmet"
@@ -20,6 +21,9 @@ func Setup(app *fiber.App, cfg *config.Config) {
 	app.Use(requestid.New())
 	app.Use(recover.New())
 	app.Use(helmet.New())
+	if cfg.OTelEnabled {
+		app.Use(otelfiber.Middleware())
+	}
 	app.Use(requestLogger())
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     cfg.CORSAllowOrigins,
